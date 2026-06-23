@@ -103,7 +103,10 @@
   .sw.trabajo{background:var(--surface);border:1px solid var(--border)}
   .sw.hoy{background:var(--surface);box-shadow:0 0 0 2px var(--today)}
 
-  .calgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:16px}
+  .calgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  @media(max-width:900px){.calgrid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:640px){.calgrid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:380px){.calgrid{grid-template-columns:1fr}}
   .month{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 12px 13px}
   .month h3{font-size:13px;font-weight:640;margin-bottom:9px;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline}
   .month h3 small{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:400;text-transform:uppercase}
