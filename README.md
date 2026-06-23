@@ -1,22 +1,28 @@
-# Vacaciones — PWA de saldo de vacaciones
+# Vacaciones — PWA de vacaciones + jornada
 
-App personal (Mac + iPhone) para cuadrar días de vacaciones: saldo disponible,
-movimientos (devengo mensual desde inicio de contrato − periodos disfrutados),
-previsión a fin de año y festivos (España + Catalunya + Cornellà de Llobregat).
+App personal (Mac + iPhone) para gestionar vacaciones y jornada parcial:
+- **Saldo de vacaciones** por año (asignación con reinicio cada enero; el año de alta se
+  prorratea). Las vacaciones se descuentan en **días laborables** (ni findes, ni festivos, ni
+  días libres personales).
+- **Calendario anual** marcable: pones vacaciones y días libres, y ves los festivos por ámbito
+  (España / Catalunya / Cornellà).
+- **Jornada parcial (30 h)**: patrón semanal de días libres (por defecto, lunes) con
+  excepciones por fecha; la app cuenta días y horas trabajados por semana y mes.
 
 **Producción:** https://vacaciones.jmauri.com (PWA instalable, sincronizada entre dispositivos)
 
 ## Cómo se usa
 
 1. Abre https://vacaciones.jmauri.com en Safari (iPhone) o el navegador del Mac.
-2. **iPhone**: Compartir → "Añadir a pantalla de inicio" (icono propio, pantalla completa, offline).
-   **Mac**: Chrome/Edge → instalar app; o Safari → Archivo → Añadir al Dock.
-3. La primera vez, en **Ajustes → Sincronización** pega el token (`SYNC_TOKEN` del servidor).
-   El mismo token en Mac y iPhone = mismos datos. Sin token, funciona solo en local.
-4. En **Ajustes → Contrato** pon tus días/año y la fecha de inicio de contrato.
+2. **iPhone**: Compartir → "Añadir a pantalla de inicio". **Mac**: instalar como app o añadir al Dock.
+3. El token de sincronización va **horneado** (no hay que pegar nada); el mismo en todos los
+   dispositivos = mismos datos. Cambiable en Ajustes → Sincronización.
+4. En **Ajustes** configura: días/año (laborables), inicio de contrato, **horas/día** y el
+   **patrón semanal** de días libres.
+5. En el **calendario**, toca un día para marcar vacaciones / día libre / trabajar ese día.
+   Para periodos largos, usa la barra "Pedir vacaciones" (desde/hasta).
 
-El cómputo es en **días naturales** (findes y festivos incluidos). Los festivos se
-muestran como información (panel "Festivos") y son editables en Ajustes; no descuentan saldo.
+El diseño visual se itera con `DESIGN_BRIEF.md` (para claude.ai/design).
 
 ## Arquitectura
 
