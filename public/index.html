@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vacaciones — Saldo</title>
+<meta name="theme-color" content="#0f1428">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vacaciones">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+  :root{
+    --bg:oklch(97.5% 0.003 250); --surface:oklch(100% 0 0);
+    --ink:oklch(20% 0.015 260); --muted:oklch(50% 0.012 260); --faint:oklch(70% 0.01 260);
+    --border:oklch(91% 0.005 260); --border-2:oklch(86% 0.007 260);
+    --accent:oklch(48% 0.02 260);
+    --in:oklch(54% 0.13 158); --in-bg:oklch(54% 0.13 158 / .1);
+    --out:oklch(58% 0.16 25); --out-bg:oklch(58% 0.16 25 / .09);
+    --cat:oklch(62% 0.14 75); --cat-bg:oklch(70% 0.14 80 / .16);
+    --shadow:0 1px 2px rgba(15,20,40,.05),0 18px 36px -22px rgba(15,20,40,.22);
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --mono:ui-monospace,'SF Mono','JetBrains Mono',Menlo,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;
+    padding:clamp(16px,3.5vw,48px);padding-top:max(clamp(16px,3.5vw,48px),env(safe-area-inset-top));
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:780px;margin:0 auto}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--surface);
+    display:grid;place-content:center;font-weight:700;font-size:.9rem}
+  .brand .t{font-weight:650;letter-spacing:-.01em}
+  .brand .s{font-size:.74rem;color:var(--muted)}
+  .topright{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .contract{font-size:.78rem;color:var(--muted);font-family:var(--mono);text-align:right}
+  /* sync chip */
+  .sync{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--muted);
+    background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:4px 10px;cursor:pointer;transition:.15s}
+  .sync:hover{border-color:var(--border-2)}
+  .sync .ds{width:7px;height:7px;border-radius:99px;background:var(--faint);flex:0 0 auto}
+  .sync[data-s="ok"] .ds{background:var(--in)} .sync[data-s="ok"]{color:var(--in)}
+  .sync[data-s="pending"] .ds{background:var(--cat)}
+  .sync[data-s="offline"] .ds{background:var(--faint)}
+  .sync[data-s="error"] .ds,.sync[data-s="token"] .ds{background:var(--out)}
+  .sync[data-s="error"],.sync[data-s="token"]{color:var(--out)}
+
+  /* balance hero */
+  .balance{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+    padding:clamp(22px,4vw,34px);box-shadow:var(--shadow);margin-bottom:20px;position:relative;overflow:hidden}
+  .balance .lab{font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .bhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+  .bleft{min-width:0}
+  .balance .big{font-size:clamp(3.2rem,10vw,5rem);font-weight:600;letter-spacing:-.05em;line-height:.9;font-family:var(--mono)}
+  .balance .big.neg{color:var(--out)}
+  .balance .unit{font-size:1.05rem;color:var(--faint);font-weight:500;font-family:var(--sans);margin-left:8px;letter-spacing:0}
+  /* sparkline */
+  .spark{width:min(260px,46vw);height:72px;flex:0 0 auto;align-self:flex-end}
+  .spark svg{width:100%;height:100%;overflow:visible}
+  .spark .area{fill:url(#g);opacity:.9}
+  .spark .ln{fill:none;stroke:var(--in);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .spark .dot{fill:var(--in)}
+  .spark .zero{stroke:var(--border-2);stroke-width:1;stroke-dasharray:3 3}
+
+  .row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px;
+    border-top:1px solid var(--border);padding-top:20px}
+  .row .c{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .row .c .ck{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .c .cv{font-size:1.15rem;font-weight:600;font-family:var(--mono)}
+  .row .c .cv small{font-size:.72rem;color:var(--faint);font-weight:500}
+  .row .c .cv.pos{color:var(--in)}.row .c .cv.neg{color:var(--out)}
+
+  /* next deposit strip */
+  .next{margin-top:20px;background:var(--bg);border:1px solid var(--border);border-radius:12px;
+    padding:12px 14px;display:flex;align-items:center;gap:14px}
+  .next .ni{width:34px;height:34px;border-radius:9px;background:var(--in-bg);color:var(--in);
+    display:grid;place-content:center;font-size:1.1rem;font-weight:700;flex:0 0 auto}
+  .next .ntx{flex:1;min-width:0}
+  .next .ntx b{font-weight:600;font-size:.88rem}
+  .next .ntx span{font-size:.76rem;color:var(--muted);display:block}
+  .next .prog{flex:0 0 96px;height:6px;border-radius:99px;background:var(--border);overflow:hidden}
+  .next .prog i{display:block;height:100%;background:var(--in);border-radius:99px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+  .next .nd{font-family:var(--mono);font-size:.82rem;color:var(--muted);flex:0 0 auto}
+
+  /* add bar */
+  .addbar{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;
+    box-shadow:var(--shadow);margin-bottom:8px;display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:10px;align-items:end}
+  .fg{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .fg label{font-size:.74rem;color:var(--muted);font-weight:500}
+  input,select{font-family:inherit;font-size:.92rem;color:var(--ink);background:var(--bg);border:1px solid var(--border-2);
+    border-radius:9px;padding:10px 11px;width:100%;transition:.15s}
+  input::placeholder{color:var(--faint)}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px oklch(48% 0.02 260 / .12);background:var(--surface)}
+  input[type="date"]::-webkit-calendar-picker-indicator{opacity:.5;cursor:pointer}
+  .btn{font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;border:1px solid transparent;border-radius:9px;padding:10px 18px;transition:.15s;white-space:nowrap}
+  .btn-primary{background:var(--ink);color:var(--surface)}
+  .btn-primary:hover{background:oklch(30% 0.015 260)}
+  .btn-primary:active{transform:translateY(1px)}
+  .btn-ghost{background:var(--surface);border-color:var(--border-2);color:var(--ink)}
+  .btn-ghost:hover{background:var(--bg)}
+  .btn-quiet{background:transparent;color:var(--muted);padding:8px 4px;font-size:.8rem}
+  .btn-quiet:hover{color:var(--out)}
+  .addnote{font-size:.76rem;color:var(--muted);margin:0 4px 20px;min-height:1.1em}
+  .addnote b{color:var(--ink);font-weight:600}
+
+  /* ledger + festivos shared card */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+  .lh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .lh h2{font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .tabs{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:3px}
+  .tabs button{border:none;background:transparent;font-family:inherit;font-size:.76rem;font-weight:600;color:var(--muted);
+    padding:5px 11px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums;transition:.12s}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(15,20,40,.08)}
+
+  .mv{display:grid;grid-template-columns:34px 1fr auto 70px 26px;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--border);transition:background .12s}
+  .mv:last-child{border-bottom:none}
+  .mv:hover{background:var(--bg)}
+  .ic{width:30px;height:30px;border-radius:8px;display:grid;place-content:center;font-size:1rem;font-weight:700}
+  .ic.in{background:var(--in-bg);color:var(--in)}
+  .ic.out{background:var(--out-bg);color:var(--out)}
+  .mv .desc{min-width:0}
+  .mv .desc .d1{font-weight:550;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mv .desc .d2{font-size:.78rem;color:var(--muted);font-family:var(--mono)}
+  .mv .amt{font-family:var(--mono);font-weight:600;font-size:.98rem;text-align:right}
+  .mv .amt.in{color:var(--in)}.mv .amt.out{color:var(--out)}
+  .mv .bal{font-family:var(--mono);font-size:.84rem;color:var(--muted);text-align:right}
+  .mv .del{border:none;background:transparent;color:var(--faint);font-size:1.2rem;cursor:pointer;width:26px;height:26px;border-radius:6px;transition:.15s;justify-self:end}
+  .mv .del:hover{background:var(--out-bg);color:var(--out)}
+  .mv.income .del{visibility:hidden}
+  .mv.income .d1{color:var(--muted);font-weight:500}
+  .mvgroup{padding:8px 18px;background:var(--bg);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--faint);font-weight:600;border-bottom:1px solid var(--border)}
+  .empty{text-align:center;color:var(--muted);padding:34px 16px;font-size:.9rem}
+  .empty b{color:var(--ink)}
+
+  /* festivos */
+  .frow{display:grid;grid-template-columns:50px 1fr auto 26px;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid var(--border);transition:.12s}
+  .frow:last-child{border-bottom:none}
+  .frow:hover{background:var(--bg)}
+  .frow.past{opacity:.42}
+  .frow.next{background:var(--in-bg)}
+  .fdate{font-family:var(--mono);text-align:center;line-height:1.02}
+  .fdate .dd{font-size:1.25rem;font-weight:650}
+  .fdate .mm{font-size:.62rem;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}
+  .fname{min-width:0}
+  .fname .n1{font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fname .n2{font-size:.74rem;color:var(--muted)}
+  .fname .nx{font-size:.66rem;color:var(--in);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:7px}
+  .scope{font-size:.64rem;font-weight:700;padding:4px 9px;border-radius:99px;white-space:nowrap;letter-spacing:.02em}
+  .scope.nacional{background:var(--out-bg);color:var(--out)}
+  .scope.catalunya{background:var(--cat-bg);color:var(--cat)}
+  .scope.cornella{background:var(--in-bg);color:var(--in)}
+  .fdel{border:none;background:transparent;color:var(--faint);font-size:1.15rem;cursor:pointer;width:26px;height:26px;border-radius:6px;transition:.15s;justify-self:end}
+  .fdel:hover{background:var(--out-bg);color:var(--out)}
+
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap}
+  details{flex:1}
+  summary{cursor:pointer;list-style:none;font-size:.8rem;color:var(--muted);font-weight:600;display:inline-flex;align-items:center;gap:6px;user-select:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:'›';transition:transform .2s;display:inline-block;font-size:1.05rem}
+  details[open] summary::before{transform:rotate(90deg)}
+  .cfg{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-top:12px;
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .cfg .hint{grid-column:1/-1;font-size:.74rem;color:var(--muted);margin-top:-2px}
+  .cfg .sep{grid-column:1/-1;border-top:1px solid var(--border);margin:6px 0 2px}
+  .cfg .sub{grid-column:1/-1;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .cfg .full{grid-column:1/-1}
+  .fadd{display:grid;grid-template-columns:1fr 1.4fr 1fr auto;gap:8px;grid-column:1/-1;align-items:end}
+
+  @media(max-width:620px){
+    .row{grid-template-columns:1fr 1fr;gap:16px 14px}
+    .spark{display:none}
+    .addbar{grid-template-columns:1fr 1fr}
+    .addbar .fg:nth-child(3){grid-column:1/-1}
+    .addbar .btn{grid-column:1/-1}
+    .cfg{grid-template-columns:1fr 1fr}
+    .fadd{grid-template-columns:1fr 1fr}
+    .mv{grid-template-columns:30px 1fr auto 26px;gap:10px}
+    .mv .bal{display:none}
+    .next .prog{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark">V</div>
+      <div><div class="t">Saldo de vacaciones</div><div class="s">cuenta de tiempo</div></div>
+    </div>
+    <div class="topright">
+      <button class="sync" id="syncChip" data-s="local" title="Estado de sincronización"><span class="ds"></span><span id="syncTxt">local</span></button>
+      <div class="contract">contrato desde<br><span id="contractDisp">—</span></div>
+    </div>
+  </header>
+
+  <section class="balance">
+    <div class="bhead">
+      <div class="bleft">
+        <div class="lab">Saldo disponible</div>
+        <div><span class="big num" id="bigLeft">0</span><span class="unit">días</span></div>
+      </div>
+      <div class="spark" id="spark" aria-hidden="true"></div>
+    </div>
+    <div class="row">
+      <div class="c"><span class="ck">Ingresado a hoy</span><span class="cv pos num" id="cAcc">+0</span></div>
+      <div class="c"><span class="ck">Disfrutado</span><span class="cv neg num" id="cUsed">−0</span></div>
+      <div class="c"><span class="ck">Nómina mensual</span><span class="cv num" id="cRate">0 <small>/mes</small></span></div>
+      <div class="c"><span class="ck" id="projLab">Previsión fin de año</span><span class="cv num" id="cProj">0</span></div>
+    </div>
+    <div class="next">
+      <div class="ni">↑</div>
+      <div class="ntx"><b id="nextAmt">+0 días</b><span id="nextWhen">próximo ingreso —</span></div>
+      <div class="prog"><i id="nextProg"></i></div>
+      <div class="nd" id="nextDays">—</div>
+    </div>
+  </section>
+
+  <section class="addbar">
+    <div class="fg"><label for="dateFrom">Desde</label><input type="date" id="dateFrom"></div>
+    <div class="fg"><label for="dateTo">Hasta</label><input type="date" id="dateTo"></div>
+    <div class="fg"><label for="note">Concepto (opcional)</label><input type="text" id="note" placeholder="p. ej. Galicia, puente…"></div>
+    <button class="btn btn-primary" id="addBtn">Registrar gasto</button>
+  </section>
+  <p class="addnote" id="addNote"></p>
+
+  <section class="card">
+    <div class="lh">
+      <h2>Movimientos</h2>
+      <div class="tabs" id="tabs"></div>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section class="card">
+    <div class="lh">
+      <h2>Festivos</h2>
+      <div class="tabs" id="festTabs"></div>
+    </div>
+    <div id="festList"></div>
+  </section>
+
+  <div class="foot">
+    <details>
+      <summary>Ajustes</summary>
+      <div class="cfg">
+        <div class="sub">Contrato</div>
+        <div class="fg"><label for="cfgTotal">Días/año</label><input type="number" id="cfgTotal" step="0.5" min="0"></div>
+        <div class="fg"><label for="cfgStart">Inicio de contrato</label><input type="date" id="cfgStart"></div>
+        <button class="btn btn-ghost" id="saveCfg">Guardar</button>
+        <p class="hint">El tiempo se ingresa como nómina mensual: días/año ÷ 12 cada mes que cumples desde el inicio. Los periodos se cuentan en días naturales (festivos y findes incluidos).</p>
+
+        <div class="sep"></div>
+        <div class="sub">Sincronización</div>
+        <div class="fg full"><label for="cfgToken">Token de sincronización</label><input type="password" id="cfgToken" placeholder="pega aquí el token del servidor"></div>
+        <button class="btn btn-ghost full" id="saveToken">Guardar token y sincronizar</button>
+        <p class="hint">Mismo token en Mac y iPhone para ver los mismos datos. Es el valor de <code>SYNC_TOKEN</code> del servidor.</p>
+
+        <div class="sep"></div>
+        <div class="sub">Añadir festivo</div>
+        <div class="fadd">
+          <input type="date" id="fAddDate" aria-label="Fecha del festivo">
+          <input type="text" id="fAddName" placeholder="Nombre">
+          <select id="fAddScope">
+            <option value="cornella">Cornellà</option>
+            <option value="catalunya">Catalunya</option>
+            <option value="nacional">España</option>
+          </select>
+          <button class="btn btn-ghost" id="fAddBtn">Añadir</button>
+        </div>
+        <button class="btn btn-quiet full" id="fResetBtn">Restaurar festivos por defecto</button>
+      </div>
+    </details>
+    <button class="btn btn-quiet" id="resetBtn">Borrar todo</button>
+  </div>
+</div>
+
+<script>
+/* ---------- festivos por defecto ---------- */
+// Catalunya 2026: Ordre EMT/66/2025 (DOGC 9406, 06/05/2025) — 12 festius.
+// Locals de Cornellà de Llobregat 2026: 25/05 i 05/06 (Corpus / Festa Major).
+// 2027: nacionals + autonòmics (Pasqua 28/03/2027); locals de Cornellà por confirmar.
+const DEFAULT_FESTIVOS=[
+  {date:'2026-01-01',name:"Cap d'Any",scope:'nacional'},
+  {date:'2026-01-06',name:'Reis',scope:'nacional'},
+  {date:'2026-04-03',name:'Divendres Sant',scope:'nacional'},
+  {date:'2026-04-06',name:'Dilluns de Pasqua Florida',scope:'catalunya'},
+  {date:'2026-05-01',name:'Festa del Treball',scope:'nacional'},
+  {date:'2026-05-25',name:'Festa local de Cornellà',scope:'cornella'},
+  {date:'2026-06-05',name:'Festa Major (Corpus) de Cornellà',scope:'cornella'},
+  {date:'2026-06-24',name:'Sant Joan',scope:'catalunya'},
+  {date:'2026-08-15',name:"L'Assumpció",scope:'nacional'},
+  {date:'2026-09-11',name:'Diada Nacional de Catalunya',scope:'catalunya'},
+  {date:'2026-10-12',name:"Festa Nacional d'Espanya",scope:'nacional'},
+  {date:'2026-12-08',name:'La Immaculada',scope:'nacional'},
+  {date:'2026-12-25',name:'Nadal',scope:'nacional'},
+  {date:'2026-12-26',name:'Sant Esteve',scope:'catalunya'},
+  {date:'2027-01-01',name:"Cap d'Any",scope:'nacional'},
+  {date:'2027-01-06',name:'Reis',scope:'nacional'},
+  {date:'2027-03-26',name:'Divendres Sant',scope:'nacional'},
+  {date:'2027-03-29',name:'Dilluns de Pasqua Florida',scope:'catalunya'},
+  {date:'2027-05-01',name:'Festa del Treball',scope:'nacional'},
+  {date:'2027-06-24',name:'Sant Joan',scope:'catalunya'},
+  {date:'2027-09-11',name:'Diada Nacional de Catalunya',scope:'catalunya'},
+  {date:'2027-10-12',name:"Festa Nacional d'Espanya",scope:'nacional'},
+  {date:'2027-12-08',name:'La Immaculada',scope:'nacional'},
+  {date:'2027-12-25',name:'Nadal',scope:'nacional'},
+];
+const SCOPE_LABEL={nacional:'España',catalunya:'Catalunya',cornella:'Cornellà'};
+
+/* ---------- estado ---------- */
+const DEFAULTS={totalDaysPerYear:30,contractStart:'2026-07-01',vacations:[],festivos:{added:[],removed:[]},updatedAt:0};
+let state=structuredClone(DEFAULTS);
+let filterYear='all',festYear=null;
+const $=id=>document.getElementById(id);
+const KEY='vacacionesState',TKEY='vacToken';
+let token=localStorage.getItem(TKEY)||'';
+
+function saveLocal(){localStorage.setItem(KEY,JSON.stringify(state))}
+function load(){const s=localStorage.getItem(KEY);if(s)try{state=Object.assign(structuredClone(DEFAULTS),JSON.parse(s))}catch(e){}
+  if(!state.festivos)state.festivos={added:[],removed:[]};}
+
+/* ---------- sincronización ---------- */
+const API='/api/state';
+let pushTimer=null;
+function setSync(s,txt){const c=$('syncChip');c.dataset.s=s;$('syncTxt').textContent=txt||({ok:'sincronizado',pending:'guardando…',offline:'sin conexión',error:'error',token:'falta token',local:'solo local'}[s]||s);}
+function authHeaders(extra){const h=Object.assign({},extra||{});if(token)h['Authorization']='Bearer '+token;return h;}
+function adopt(remote){state=Object.assign(structuredClone(DEFAULTS),remote);if(!state.festivos)state.festivos={added:[],removed:[]};saveLocal();renderAll();}
+
+async function pullState(){
+  try{
+    const r=await fetch(API,{headers:authHeaders(),cache:'no-store'});
+    if(r.status===401){setSync('token');return;}
+    if(r.status===204){setSync('ok');return;}
+    if(!r.ok)throw 0;
+    const remote=await r.json();
+    if(remote&&(remote.updatedAt||0)>=(state.updatedAt||0))adopt(remote);
+    setSync('ok');
+  }catch(e){setSync('offline');}
+}
+function schedulePush(){
+  if(!token){setSync('local');return;}
+  setSync('pending');clearTimeout(pushTimer);pushTimer=setTimeout(doPush,800);
+}
+async function doPush(){
+  try{
+    const r=await fetch(API,{method:'PUT',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify(state)});
+    if(r.status===401){setSync('token');return;}
+    if(r.status===409){const remote=await r.json();adopt(remote);setSync('ok');return;}
+    if(!r.ok)throw 0;
+    setSync('ok');
+  }catch(e){setSync('offline');}
+}
+function touch(){state.updatedAt=Date.now();saveLocal();schedulePush();}
+function setToken(t){token=(t||'').trim();if(token)localStorage.setItem(TKEY,token);else localStorage.removeItem(TKEY);}
+
+/* ---------- utilidades fecha ---------- */
+const MS=86400000;
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MESL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function pd(s){return new Date(s+'T00:00:00')}
+function today0(){const t=new Date();t.setHours(0,0,0,0);return t}
+function fmtShort(d){if(typeof d==='string')d=pd(d);return `${d.getDate()} ${MES[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`}
+function daysBetween(a,b){return Math.floor((pd(b)-pd(a))/MS)+1}
+function addMonths(date,n){const d=new Date(date);const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);
+  d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return d}
+function r1(n){return Math.round(n*10)/10}
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+/* ---------- festivos derivados ---------- */
+function festivos(){
+  const removed=new Set(state.festivos.removed||[]);
+  const map=new Map();
+  DEFAULT_FESTIVOS.concat(state.festivos.added||[]).forEach(f=>{
+    const k=f.date;if(removed.has(k))return;map.set(k,f);
+  });
+  return [...map.values()].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
+function festivoSet(){return new Set(festivos().map(f=>f.date))}
+function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+const perMonth=()=>state.totalDaysPerYear/12;
+function monthsAccrued(asOf){
+  const s=pd(state.contractStart),t=asOf||today0();
+  let m=(t.getFullYear()-s.getFullYear())*12+(t.getMonth()-s.getMonth());
+  if(t.getDate()<s.getDate())m--;
+  return Math.max(0,m);
+}
+function accrued(){return r1(monthsAccrued()*perMonth())}
+function usedDays(){return state.vacations.reduce((s,v)=>s+daysBetween(v.from,v.to),0)}
+
+function buildEvents(){
+  const ev=[],start=pd(state.contractStart),ma=monthsAccrued();
+  for(let k=1;k<=ma;k++){const dt=addMonths(start,k);
+    ev.push({kind:'in',date:dt,amt:perMonth(),label:'Nómina de '+MESL[((start.getMonth()+k-1)%12+12)%12]});}
+  state.vacations.forEach(v=>{ev.push({kind:'out',date:pd(v.to),amt:-daysBetween(v.from,v.to),
+    label:v.note?escapeHtml(v.note):'Vacaciones',from:v.from,to:v.to,id:v.id});});
+  ev.sort((a,b)=>(a.date-b.date)||(a.kind===b.kind?0:a.kind==='in'?-1:1));
+  let run=0;ev.forEach(e=>{run+=e.amt;e.bal=r1(run)});
+  return ev;
+}
+
+function renderBalance(ev){
+  const total=accrued(),used=usedDays(),left=r1(total-used);
+  const bl=$('bigLeft');bl.textContent=left;bl.classList.toggle('neg',left<0);
+  $('cAcc').textContent='+'+r1(total);
+  $('cUsed').textContent='−'+used;
+  $('cRate').innerHTML=r1(perMonth())+' <small>/mes</small>';
+  $('contractDisp').textContent=fmtShort(state.contractStart);
+
+  const t=today0(),yEnd=new Date(t.getFullYear(),11,31),start=pd(state.contractStart);
+  let future=0;for(let k=monthsAccrued()+1;k<=600;k++){const dt=addMonths(start,k);if(dt>yEnd)break;if(dt>t)future+=perMonth();}
+  $('projLab').textContent='Previsión 31 dic '+t.getFullYear();
+  $('cProj').textContent=r1(left+future);
+
+  const ma=monthsAccrued(),nextDate=addMonths(start,ma+1),prevDate=ma?addMonths(start,ma):start;
+  const totalSpan=Math.max(1,Math.round((nextDate-prevDate)/MS)),done=Math.max(0,Math.round((t-prevDate)/MS));
+  const daysLeft=Math.max(0,Math.ceil((nextDate-t)/MS));
+  $('nextAmt').textContent='+'+r1(perMonth())+' días';
+  $('nextWhen').textContent='próximo ingreso · '+fmtShort(nextDate);
+  $('nextProg').style.width=Math.min(100,done/totalSpan*100)+'%';
+  $('nextDays').textContent='en '+daysLeft+'d';
+}
+
+function renderSpark(ev){
+  const el=$('spark');
+  if(ev.length<2){el.innerHTML='';return;}
+  const pts=[{x:pd(state.contractStart).getTime(),y:0},...ev.map(e=>({x:e.date.getTime(),y:e.bal}))];
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(0,...ys),y1=Math.max(...ys,0.1);
+  const W=100,H=40,pad=2;
+  const sx=x=>x1===x0?0:((x-x0)/(x1-x0))*W;
+  const sy=y=>H-pad-((y-y0)/(y1-y0||1))*(H-pad*2);
+  const line=pts.map((p,i)=>(i?'L':'M')+sx(p.x).toFixed(2)+' '+sy(p.y).toFixed(2)).join(' ');
+  const area=line+` L ${W} ${H} L 0 ${H} Z`;
+  const zeroY=sy(0).toFixed(2);
+  const last=pts[pts.length-1];
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="oklch(54% 0.13 158)" stop-opacity=".22"/>
+      <stop offset="1" stop-color="oklch(54% 0.13 158)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <line class="zero" x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}"/>
+    <path class="area" d="${area}"/>
+    <path class="ln" d="${line}" vector-effect="non-scaling-stroke"/>
+    <circle class="dot" cx="${sx(last.x).toFixed(2)}" cy="${sy(last.y).toFixed(2)}" r="2.2"/>
+  </svg>`;
+}
+
+function renderTabs(ev){
+  const years=[...new Set(ev.map(e=>e.date.getFullYear()))].sort((a,b)=>b-a);
+  if(filterYear!=='all'&&!years.includes(filterYear))filterYear='all';
+  const tabs=$('tabs');
+  tabs.innerHTML=`<button data-y="all" class="${filterYear==='all'?'on':''}">Todo</button>`+
+    years.map(y=>`<button data-y="${y}" class="${filterYear==y?'on':''}">${y}</button>`).join('');
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    filterYear=b.dataset.y==='all'?'all':Number(b.dataset.y);renderAll();});
+  tabs.style.display=years.length?'':'none';
+}
+
+function renderLedger(ev){
+  const list=$('list');
+  if(!ev.length){
+    list.innerHTML='<div class="empty"><b>Cuenta nueva.</b><br>Tus ingresos mensuales aparecerán aquí en cuanto cumplas el primer mes. Registra un gasto arriba para empezar el extracto.</div>';return;
+  }
+  let rows=ev.slice().reverse();
+  if(filterYear!=='all')rows=rows.filter(e=>e.date.getFullYear()===filterYear);
+  if(!rows.length){list.innerHTML='<div class="empty">Sin movimientos en '+filterYear+'.</div>';return;}
+  let html='',lastKey='';
+  rows.forEach(e=>{
+    const key=e.date.getFullYear()+'-'+e.date.getMonth();
+    if(key!==lastKey){html+=`<div class="mvgroup">${MESL[e.date.getMonth()]} ${e.date.getFullYear()}</div>`;lastKey=key;}
+    if(e.kind==='in'){
+      html+=`<div class="mv income">
+        <div class="ic in">+</div>
+        <div class="desc"><div class="d1">${e.label}</div><div class="d2">${fmtShort(e.date)}</div></div>
+        <div class="amt in num">+${r1(e.amt)}</div>
+        <div class="bal num">${e.bal}</div>
+        <span></span></div>`;
+    }else{
+      const range=e.from===e.to?fmtShort(e.from):`${fmtShort(e.from)} → ${fmtShort(e.to)}`;
+      html+=`<div class="mv">
+        <div class="ic out">−</div>
+        <div class="desc"><div class="d1">${e.label}</div><div class="d2">${range}</div></div>
+        <div class="amt out num">${r1(e.amt)}</div>
+        <div class="bal num">${e.bal}</div>
+        <button class="del" data-id="${e.id}" aria-label="Eliminar">×</button></div>`;
+    }
+  });
+  list.innerHTML=html;
+  list.querySelectorAll('.del').forEach(b=>b.onclick=()=>removeVacation(Number(b.dataset.id)));
+}
+
+function renderFestivos(){
+  const all=festivos();
+  const years=[...new Set(all.map(f=>f.date.slice(0,4)))].sort();
+  const ty=String(today0().getFullYear());
+  if(festYear===null)festYear=years.includes(ty)?ty:(years[0]||ty);
+  if(!years.includes(festYear))festYear=years[0]||ty;
+
+  const tabs=$('festTabs');
+  tabs.innerHTML=years.map(y=>`<button data-y="${y}" class="${festYear==y?'on':''}">${y}</button>`).join('');
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{festYear=b.dataset.y;renderFestivos();});
+  tabs.style.display=years.length>1?'':'none';
+
+  const rows=all.filter(f=>f.date.slice(0,4)===festYear);
+  const list=$('festList');
+  if(!rows.length){list.innerHTML='<div class="empty">Sin festivos para '+festYear+'. Añade los que falten en Ajustes.</div>';return;}
+  const todayISO=toISO(today0());
+  const nextDate=rows.map(f=>f.date).find(d=>d>=todayISO);
+  list.innerHTML=rows.map(f=>{
+    const d=pd(f.date),wd=['dom','lun','mar','mié','jue','vie','sáb'][d.getDay()];
+    const past=f.date<todayISO,isNext=f.date===nextDate;
+    return `<div class="frow${past?' past':''}${isNext?' next':''}">
+      <div class="fdate"><div class="dd">${d.getDate()}</div><div class="mm">${MES[d.getMonth()]}</div></div>
+      <div class="fname"><div class="n1">${escapeHtml(f.name)}${isNext?'<span class="nx">próximo</span>':''}</div><div class="n2">${wd}</div></div>
+      <span class="scope ${f.scope}">${SCOPE_LABEL[f.scope]||f.scope}</span>
+      <button class="fdel" data-d="${f.date}" aria-label="Quitar">×</button></div>`;
+  }).join('');
+  list.querySelectorAll('.fdel').forEach(b=>b.onclick=()=>removeFestivo(b.dataset.d));
+}
+
+function renderAll(){
+  const ev=buildEvents();
+  renderBalance(ev);renderSpark(ev);renderTabs(ev);renderLedger(ev);renderFestivos();
+  $('cfgTotal').value=state.totalDaysPerYear;$('cfgStart').value=state.contractStart;
+}
+
+/* ---------- acciones ---------- */
+function rangeNote(from,to){
+  const fset=festivoSet();let fest=0,wknd=0;
+  for(let d=pd(from);d<=pd(to);d=new Date(d.getTime()+MS)){
+    const iso=toISO(d),wd=d.getDay();
+    if(fset.has(iso))fest++;else if(wd===0||wd===6)wknd++;
+  }
+  const parts=[];if(fest)parts.push(fest+' festivo'+(fest>1?'s':''));if(wknd)parts.push(wknd+(wknd>1?' días de finde':' día de finde'));
+  return parts.length?`Incluye ${parts.join(' y ')} (cuentan igual, son días naturales).`:'';
+}
+function addVacation(){
+  const from=$('dateFrom').value,to=$('dateTo').value,note=$('note').value.trim();
+  if(!from||!to){flash($('addBtn'),'Elige fechas');return}
+  if(pd(to)<pd(from)){flash($('addBtn'),'Rango inválido');return}
+  state.vacations.push({id:Date.now(),from,to,note});touch();renderAll();
+  $('addNote').innerHTML=rangeNote(from,to)?('<b>'+daysBetween(from,to)+' días</b> registrados. '+rangeNote(from,to)):'';
+  $('dateFrom').value=$('dateTo').value=$('note').value='';
+}
+function removeVacation(id){state.vacations=state.vacations.filter(v=>v.id!==id);touch();renderAll()}
+function removeFestivo(date){
+  state.festivos.added=(state.festivos.added||[]).filter(f=>f.date!==date);
+  if(DEFAULT_FESTIVOS.some(f=>f.date===date)){state.festivos.removed=[...new Set([...(state.festivos.removed||[]),date])];}
+  touch();renderFestivos();
+}
+function addFestivo(){
+  const date=$('fAddDate').value,name=$('fAddName').value.trim(),scope=$('fAddScope').value;
+  if(!date||!name){flash($('fAddBtn'),'Fecha y nombre');return}
+  state.festivos.removed=(state.festivos.removed||[]).filter(d=>d!==date);
+  state.festivos.added=(state.festivos.added||[]).filter(f=>f.date!==date);
+  state.festivos.added.push({date,name,scope});
+  touch();festYear=date.slice(0,4);renderFestivos();
+  $('fAddDate').value=$('fAddName').value='';
+}
+function resetFestivos(){if(!confirm('¿Restaurar los festivos por defecto? Se pierden tus añadidos y quitados.'))return;
+  state.festivos={added:[],removed:[]};touch();renderFestivos();}
+function saveCfg(){state.totalDaysPerYear=parseFloat($('cfgTotal').value)||30;state.contractStart=$('cfgStart').value||'2026-07-01';touch();renderAll();const b=$('saveCfg');const t=b.textContent;b.textContent='Guardado ✓';setTimeout(()=>b.textContent=t,1200)}
+function saveTokenCfg(){setToken($('cfgToken').value);$('cfgToken').value='';const b=$('saveToken');b.textContent='Sincronizando…';pullState().then(()=>{schedulePush();b.textContent='Guardado ✓';setTimeout(()=>b.textContent='Guardar token y sincronizar',1400)});}
+function resetAll(){if(!confirm('¿Borrar todos los movimientos y ajustes de este dispositivo?'))return;localStorage.removeItem(KEY);state=structuredClone(DEFAULTS);filterYear='all';festYear=null;touch();renderAll()}
+function flash(btn,msg){const t=btn.textContent;btn.textContent=msg;btn.style.background='var(--out)';btn.style.color='#fff';setTimeout(()=>{btn.textContent=t;btn.style.background='';btn.style.color=''},1100)}
+
+function askToken(){const t=prompt('Token de sincronización (mismo en Mac y iPhone):',token||'');if(t!==null){setToken(t);pullState().then(schedulePush);}}
+
+/* ---------- arranque ---------- */
+$('addBtn').onclick=addVacation;
+$('note').addEventListener('keydown',e=>{if(e.key==='Enter')addVacation()});
+$('saveCfg').onclick=saveCfg;
+$('saveToken').onclick=saveTokenCfg;
+$('fAddBtn').onclick=addFestivo;
+$('fResetBtn').onclick=resetFestivos;
+$('resetBtn').onclick=resetAll;
+$('syncChip').onclick=()=>{if(!token)askToken();else pullState();};
+window.addEventListener('online',()=>{pullState();});
+
+load();renderAll();
+setSync(token?'pending':'local');
+pullState();
+
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>

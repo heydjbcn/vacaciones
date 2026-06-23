@@ -1,0 +1,17 @@
+{
+  "name": "Vacaciones — Saldo",
+  "short_name": "Vacaciones",
+  "description": "Cuadra tus días de vacaciones: saldo, movimientos y festivos.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f7fa",
+  "theme_color": "#0f1428",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
