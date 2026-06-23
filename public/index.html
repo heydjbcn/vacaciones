@@ -485,8 +485,7 @@ function cellVisual(tp,scope,isToday){
   if(tp==='finde'){bg='var(--surface2)';col='var(--faint)';}
   else if(tp==='vacaciones'){bg='var(--vac)';col='var(--vacInk)';weight='650';
     marks='<span style="position:absolute;top:0;left:0;border-top:8px solid var(--vacInk);border-right:8px solid transparent;opacity:.92;pointer-events:none"></span>';}
-  else if(tp==='libre'){bg='var(--libre)';col='var(--libreInk)';weight='600';
-    marks='<span style="position:absolute;top:4px;left:4px;width:7px;height:7px;border-radius:50%;border:1.6px solid var(--libreInk);pointer-events:none"></span>';}
+  else if(tp==='libre'){bg='var(--libre)';col='var(--libreInk)';weight='600';}
   else if(tp==='festivo'){bg='var(--surface2)';const sc=scopeVar(scope);col=sc;weight='650';ring='inset 0 0 0 1.5px '+sc;
     const pos=scope==='nacional'?'24%':scope==='catalunya'?'50%':'76%';
     marks='<span style="position:absolute;bottom:3px;left:'+pos+';transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:'+sc+';pointer-events:none"></span>';}
