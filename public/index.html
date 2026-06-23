@@ -246,7 +246,9 @@
   <div class="sechead">
     <h2>Calendario</h2>
     <div class="tabs" id="calTabs"></div>
+    <button class="btn-soft" id="rangeBtn" style="margin-left:auto;padding:7px 13px;font-size:12px">Marcar rango</button>
   </div>
+  <p class="addnote" id="rangeHint" style="display:none;margin:-6px 4px 14px"></p>
   <div class="legend">
     <span class="lg"><span class="sw vacaciones"></span>Vacaciones</span>
     <span class="lg"><span class="sw libre"></span>Día libre</span>
@@ -256,6 +258,11 @@
     <span class="lg"><span class="sw hoy"></span>Hoy</span>
   </div>
   <div class="calgrid" id="calGrid"></div>
+
+  <div class="card pad" id="puentesCard" style="margin-top:20px;display:none">
+    <h3 class="sec" style="margin-bottom:4px">Puentes sugeridos</h3>
+    <div id="puentesList"></div>
+  </div>
 
   <div class="grid2b">
     <div class="card pad">
@@ -378,6 +385,7 @@ const DEFAULTS={
 };
 let state=structuredClone(DEFAULTS);
 let filterYear='all', festYear=null, calYear=null;
+let rangeMode=false, rangeStart=null;
 const $=id=>document.getElementById(id);
 const KEY='vacacionesState';
 
@@ -522,12 +530,78 @@ function renderCalendar(){
       const d=new Date(calYear,m,day),iso=toISO(d),f=fmap.get(iso),tp=dayType(d,iso,vac);
       const isToday=iso===tIso,vis=cellVisual(tp,f&&f.scope,isToday);
       if(f&&f.scope==='barcelona'&&tp!=='vacaciones'){const sc='var(--festBcn)';vis.col=sc;vis.weight='650';vis.bs=(vis.bs?vis.bs+',':'')+'inset 0 0 0 1.5px '+sc;}
+      if(rangeMode&&iso===rangeStart)vis.bs=(vis.bs?vis.bs+',':'')+'inset 0 0 0 2px var(--vac)';
       html+=`<button class="day" data-iso="${iso}" style="background:${vis.bg};color:${vis.col};font-weight:${vis.weight};box-shadow:${vis.bs||'none'};z-index:${isToday?2:1}"${f?` title="${escapeHtml(f.name)}"`:''}>${vis.marks}${day}</button>`;
     }
     html+='</div></div>';
   }
   $('calGrid').innerHTML=html;
-  $('calGrid').querySelectorAll('.day').forEach(c=>c.onclick=()=>openDay(c.dataset.iso));
+  $('calGrid').querySelectorAll('.day').forEach(c=>c.onclick=()=>{rangeMode?pickRange(c.dataset.iso):openDay(c.dataset.iso);});
+  renderPuentes(calYear);
+}
+
+/* ---------- marcar rango en el calendario ---------- */
+function updateRangeUI(){
+  const b=$('rangeBtn'),h=$('rangeHint');
+  b.classList.toggle('on',rangeMode);
+  b.style.background=rangeMode?'var(--vac)':'';b.style.color=rangeMode?'var(--vacInk)':'';b.style.borderColor=rangeMode?'transparent':'';
+  b.textContent=rangeMode?'Cancelar rango':'Marcar rango';
+  if(rangeMode){h.style.display='';h.innerHTML=rangeStart?`Inicio: <b>${fmtLong(rangeStart)}</b>. Ahora toca el día final.`:'Toca el <b>día de inicio</b> de tus vacaciones.';}
+  else h.style.display='none';
+}
+function toggleRange(){rangeMode=!rangeMode;rangeStart=null;updateRangeUI();renderCalendar();}
+function pickRange(iso){
+  if(!rangeStart){rangeStart=iso;updateRangeUI();renderCalendar();return;}
+  const from=iso<rangeStart?iso:rangeStart,to=iso<rangeStart?rangeStart:iso;
+  rangeMode=false;rangeStart=null;updateRangeUI();
+  addVacationRange(from,to);
+}
+function addVacationRange(from,to){
+  state.vacations.push({id:Date.now(),from,to,note:''});touch();renderAll();
+  const c=vacCostText(from,to);
+  $('addNote').innerHTML=`<b>${c.work} día${c.work!==1?'s':''} laborable${c.work!==1?'s':''}</b> marcados (${fmtShort(from)} → ${fmtShort(to)}).`;
+}
+
+/* ---------- sugeridor de puentes ---------- */
+function getPuentes(year){
+  const t=today0(),vac=vacationDates(),res=[],seen=new Set();
+  const isOff=dt=>{const iso=toISO(dt);return vac.has(iso)||!isWorkday(dt,iso);};
+  const end=new Date(year,11,31);
+  let cur=new Date(year,0,1);
+  while(cur<=end){
+    if(isOff(cur)){cur.setDate(cur.getDate()+1);continue;}
+    const gapStart=new Date(cur),gap=[];
+    while(cur<=end&&!isOff(cur)){gap.push(new Date(cur));cur.setDate(cur.getDate()+1);}
+    const cost=gap.length;
+    if(cost<1||cost>3)continue;
+    let L=0,p=new Date(gapStart);p.setDate(p.getDate()-1);
+    while(L<10&&isOff(p)){L++;p.setDate(p.getDate()-1);}
+    let R=0,q=new Date(cur);
+    while(R<10&&isOff(q)){R++;q.setDate(q.getDate()+1);}
+    if(L<1||R<1)continue;
+    const gEnd=gap[gap.length-1];
+    const fromFree=new Date(gapStart);fromFree.setDate(fromFree.getDate()-L);
+    const toFree=new Date(gEnd);toFree.setDate(toFree.getDate()+R);
+    if(toFree<t)continue;
+    const span=L+cost+R;
+    const key=toISO(gapStart)+toISO(gEnd);if(seen.has(key))continue;seen.add(key);
+    res.push({from:toISO(gapStart),to:toISO(gEnd),cost,span,freeFrom:toISO(fromFree),freeTo:toISO(toFree)});
+  }
+  res.sort((a,b)=>(b.span/b.cost)-(a.span/a.cost)||b.span-a.span||(a.from<b.from?-1:1));
+  return res.slice(0,5);
+}
+function renderPuentes(year){
+  const card=$('puentesCard'),list=$('puentesList');
+  const ps=getPuentes(year);
+  if(!ps.length){card.style.display='none';return;}
+  card.style.display='';
+  list.innerHTML='<div class="reslist">'+ps.map(p=>{
+    const gap=p.from===p.to?fmtShort(p.from):`${fmtShort(p.from)} → ${fmtShort(p.to)}`;
+    return `<div class="vrow"><span class="vc" style="color:var(--pos)">${p.span} días</span>
+      <span class="vn">Coge <b>${gap}</b> (${p.cost} día${p.cost!==1?'s':''}) → libre del ${fmtShort(p.freeFrom)} al ${fmtShort(p.freeTo)}</span>
+      <button class="btn-soft" style="padding:6px 12px;font-size:12px" data-f="${p.from}" data-t="${p.to}">Coger</button></div>`;
+  }).join('')+'</div>';
+  list.querySelectorAll('button[data-f]').forEach(b=>b.onclick=()=>addVacationRange(b.dataset.f,b.dataset.t));
 }
 function yearsRange(){
   const ys=new Set(),cy=today0().getFullYear(),sy=pd(state.contractStart).getFullYear();
@@ -735,6 +809,7 @@ $('fAddBtn').onclick=addFestivo;
 $('fResetBtn').onclick=resetFestivos;
 $('resetBtn').onclick=resetAll;
 $('syncChip').onclick=()=>pullState();
+$('rangeBtn').onclick=toggleRange;
 $('dayModal').onclick=e=>{if(e.target===$('dayModal'))closeDay();};
 window.addEventListener('online',pullState);
 
