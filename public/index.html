@@ -321,7 +321,10 @@ let state=structuredClone(DEFAULTS);
 let filterYear='all',festYear=null;
 const $=id=>document.getElementById(id);
 const KEY='vacacionesState',TKEY='vacToken';
-let token=localStorage.getItem(TKEY)||'';
+// Token por defecto horneado: app de un solo usuario, así no hay que pegarlo en cada dispositivo.
+const DEFAULT_TOKEN='62aaa4dde47af5afb200a5c2d6b429a4b165cd5b703365f9';
+let token=localStorage.getItem(TKEY)||DEFAULT_TOKEN;
+try{localStorage.setItem(TKEY,token);}catch(e){}
 
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(state))}
 function load(){const s=localStorage.getItem(KEY);if(s)try{state=Object.assign(structuredClone(DEFAULTS),JSON.parse(s))}catch(e){}
@@ -387,19 +390,22 @@ function festivoSet(){return new Set(festivos().map(f=>f.date))}
 function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 
 const perMonth=()=>state.totalDaysPerYear/12;
+function firstPay(){const s=pd(state.contractStart);return new Date(s.getFullYear(),s.getMonth(),1);}
+// Mensualidades devengadas: una por cada mes natural desde el mes de alta (inclusive),
+// a partir del día en que empieza el contrato. Empezar el 1 de julio → jul..dic = 6 meses.
 function monthsAccrued(asOf){
   const s=pd(state.contractStart),t=asOf||today0();
-  let m=(t.getFullYear()-s.getFullYear())*12+(t.getMonth()-s.getMonth());
-  if(t.getDate()<s.getDate())m--;
-  return Math.max(0,m);
+  if(t<s)return 0;
+  const f=firstPay();
+  return Math.max(0,(t.getFullYear()-f.getFullYear())*12+(t.getMonth()-f.getMonth())+1);
 }
 function accrued(){return r1(monthsAccrued()*perMonth())}
 function usedDays(){return state.vacations.reduce((s,v)=>s+daysBetween(v.from,v.to),0)}
 
 function buildEvents(){
-  const ev=[],start=pd(state.contractStart),ma=monthsAccrued();
-  for(let k=1;k<=ma;k++){const dt=addMonths(start,k);
-    ev.push({kind:'in',date:dt,amt:perMonth(),label:'Nómina de '+MESL[((start.getMonth()+k-1)%12+12)%12]});}
+  const ev=[],f=firstPay(),n=monthsAccrued();
+  for(let k=0;k<n;k++){const dt=new Date(f.getFullYear(),f.getMonth()+k,1);
+    ev.push({kind:'in',date:dt,amt:perMonth(),label:'Devengo de '+MESL[dt.getMonth()]});}
   state.vacations.forEach(v=>{ev.push({kind:'out',date:pd(v.to),amt:-daysBetween(v.from,v.to),
     label:v.note?escapeHtml(v.note):'Vacaciones',from:v.from,to:v.to,id:v.id});});
   ev.sort((a,b)=>(a.date-b.date)||(a.kind===b.kind?0:a.kind==='in'?-1:1));
@@ -415,16 +421,16 @@ function renderBalance(ev){
   $('cRate').innerHTML=r1(perMonth())+' <small>/mes</small>';
   $('contractDisp').textContent=fmtShort(state.contractStart);
 
-  const t=today0(),yEnd=new Date(t.getFullYear(),11,31),start=pd(state.contractStart);
-  let future=0;for(let k=monthsAccrued()+1;k<=600;k++){const dt=addMonths(start,k);if(dt>yEnd)break;if(dt>t)future+=perMonth();}
+  const t=today0(),yEnd=new Date(t.getFullYear(),11,31),f=firstPay();
+  let future=0;for(let k=monthsAccrued();k<240;k++){const dt=new Date(f.getFullYear(),f.getMonth()+k,1);if(dt>yEnd)break;if(dt>t)future+=perMonth();}
   $('projLab').textContent='Previsión 31 dic '+t.getFullYear();
   $('cProj').textContent=r1(left+future);
 
-  const ma=monthsAccrued(),nextDate=addMonths(start,ma+1),prevDate=ma?addMonths(start,ma):start;
+  const ma=monthsAccrued(),nextDate=new Date(f.getFullYear(),f.getMonth()+ma,1),prevDate=ma?new Date(f.getFullYear(),f.getMonth()+ma-1,1):pd(state.contractStart);
   const totalSpan=Math.max(1,Math.round((nextDate-prevDate)/MS)),done=Math.max(0,Math.round((t-prevDate)/MS));
   const daysLeft=Math.max(0,Math.ceil((nextDate-t)/MS));
   $('nextAmt').textContent='+'+r1(perMonth())+' días';
-  $('nextWhen').textContent='próximo ingreso · '+fmtShort(nextDate);
+  $('nextWhen').textContent='próximo devengo · '+fmtShort(nextDate);
   $('nextProg').style.width=Math.min(100,done/totalSpan*100)+'%';
   $('nextDays').textContent='en '+daysLeft+'d';
 }
