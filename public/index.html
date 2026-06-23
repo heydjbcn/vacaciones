@@ -20,7 +20,7 @@
     --bg:#f6f6f3; --surface:#ffffff; --surface2:#f0f0ec; --border:#e3e3dc; --border2:#cccbc1;
     --ink:#1b1b18; --muted:#6c6b62; --faint:#a6a59a; --pos:#1f6f43; --neg:#b23b2e;
     --vac:#2f6f6a; --vacInk:#ffffff; --libre:#e7e4f4; --libreInk:#4a3fa0;
-    --festNac:#c2603a; --festCat:#a07a12; --festCor:#7a4fb0; --today:#1b1b18; --r:5px;
+    --festNac:#c2603a; --festCat:#a07a12; --festCor:#7a4fb0; --festBcn:#2f5fb0; --today:#1b1b18; --r:5px;
     --font:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
     --display:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
@@ -134,6 +134,7 @@
   .chip.nacional{color:var(--festNac);background:color-mix(in srgb,var(--festNac) 14%,transparent)}
   .chip.catalunya{color:var(--festCat);background:color-mix(in srgb,var(--festCat) 14%,transparent)}
   .chip.cornella{color:var(--festCor);background:color-mix(in srgb,var(--festCor) 14%,transparent)}
+  .chip.barcelona{color:var(--festBcn);background:color-mix(in srgb,var(--festBcn) 14%,transparent)}
   .frow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
   .frow:last-child{border-bottom:none}
   .frow.past{opacity:.45}
@@ -246,7 +247,7 @@
     <div class="card pad">
       <div class="fhdr">
         <h3 class="sec">Festivos</h3>
-        <div class="chips"><span class="chip nacional">España</span><span class="chip catalunya">Cat</span><span class="chip cornella">Cornellà</span></div>
+        <div class="chips"><span class="chip nacional">España</span><span class="chip catalunya">Cat</span><span class="chip cornella">Cornellà</span><span class="chip barcelona">Bcn</span></div>
       </div>
       <div class="tabs" id="festTabs" style="margin-bottom:10px"></div>
       <div id="festList"></div>
@@ -277,7 +278,7 @@
       <div class="fadd">
         <input type="date" id="fAddDate" aria-label="Fecha">
         <input type="text" id="fAddName" placeholder="Nombre" style="text-transform:none;font-family:var(--font)">
-        <select id="fAddScope"><option value="cornella">Cornellà</option><option value="catalunya">Catalunya</option><option value="nacional">España</option></select>
+        <select id="fAddScope"><option value="cornella">Cornellà</option><option value="barcelona">Barcelona</option><option value="catalunya">Catalunya</option><option value="nacional">España</option></select>
         <button class="btn-soft" id="fAddBtn">Añadir</button>
       </div>
       <button class="btn-quiet full" id="fResetBtn">Restaurar festivos por defecto</button>
@@ -302,7 +303,7 @@
 <script>
 /* ---------- temas ---------- */
 const THEMES={
-  cuaderno:{label:'Cuaderno',dark:false,vars:{'--bg':'#f6f6f3','--surface':'#ffffff','--surface2':'#f0f0ec','--border':'#e3e3dc','--border2':'#cccbc1','--ink':'#1b1b18','--muted':'#6c6b62','--faint':'#a6a59a','--pos':'#1f6f43','--neg':'#b23b2e','--vac':'#2f6f6a','--vacInk':'#ffffff','--libre':'#e7e4f4','--libreInk':'#4a3fa0','--festNac':'#c2603a','--festCat':'#a07a12','--festCor':'#7a4fb0','--today':'#1b1b18','--r':'5px',"--font":"'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif","--mono":"'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace","--display":"'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif",'--paper':'repeating-linear-gradient(0deg,transparent 0 27px,#e9e9e2 27px 28px),repeating-linear-gradient(90deg,transparent 0 27px,#eeeee7 27px 28px)'}},
+  cuaderno:{label:'Cuaderno',dark:false,vars:{'--bg':'#f6f6f3','--surface':'#ffffff','--surface2':'#f0f0ec','--border':'#e3e3dc','--border2':'#cccbc1','--ink':'#1b1b18','--muted':'#6c6b62','--faint':'#a6a59a','--pos':'#1f6f43','--neg':'#b23b2e','--vac':'#2f6f6a','--vacInk':'#ffffff','--libre':'#e7e4f4','--libreInk':'#4a3fa0','--festNac':'#c2603a','--festCat':'#a07a12','--festCor':'#7a4fb0','--festBcn':'#2f5fb0','--today':'#1b1b18','--r':'5px',"--font":"'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif","--mono":"'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace","--display":"'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif",'--paper':'repeating-linear-gradient(0deg,transparent 0 27px,#e9e9e2 27px 28px),repeating-linear-gradient(90deg,transparent 0 27px,#eeeee7 27px 28px)'}},
   sereno:{label:'Sereno claro',dark:false,vars:{'--bg':'#fbfbfa','--surface':'#ffffff','--surface2':'#f4f5f4','--border':'#ececeb','--border2':'#d8d9d7','--ink':'#14171a','--muted':'#697079','--faint':'#a4aab2','--pos':'#1c7a4d','--neg':'#c4503e','--vac':'#1c7a4d','--vacInk':'#ffffff','--libre':'#eae7f8','--libreInk':'#5949b8','--festNac':'#cf8a3e','--festCat':'#2f7fb0','--festCor':'#a957a9','--today':'#14171a','--r':'14px',"--font":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif","--mono":"ui-monospace,'SF Mono',Menlo,monospace","--display":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",'--paper':'none'}},
   papel:{label:'Papel',dark:false,vars:{'--bg':'#efe9dc','--surface':'#f7f2e8','--surface2':'#e8e0cf','--border':'#d9ceb7','--border2':'#c2b495','--ink':'#2c2620','--muted':'#6f6452','--faint':'#9c917a','--pos':'#4d6b30','--neg':'#a8492f','--vac':'#7a5230','--vacInk':'#f7f2e8','--libre':'#e4dbe6','--libreInk':'#6a4978','--festNac':'#b1622c','--festCat':'#856f1c','--festCor':'#7d5a8a','--today':'#2c2620','--r':'7px',"--font":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif","--mono":"ui-monospace,'SF Mono',Menlo,monospace","--display":"ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif",'--paper':'radial-gradient(circle at 30% 20%,rgba(0,0,0,.018) 0,transparent 60%)'}},
   nocturno:{label:'Nocturno',dark:true,vars:{'--bg':'#0d0f13','--surface':'#161a21','--surface2':'#1e232c','--border':'#2a313c','--border2':'#3a424f','--ink':'#e9edf3','--muted':'#97a1af','--faint':'#5c6675','--pos':'#4ade80','--neg':'#f87171','--vac':'#38bdf8','--vacInk':'#06212e','--libre':'#2b2545','--libreInk':'#c4b5fd','--festNac':'#fb923c','--festCat':'#fbbf24','--festCor':'#c084fc','--today':'#e9edf3','--r':'12px',"--font":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif","--mono":"ui-monospace,'SF Mono',Menlo,monospace","--display":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",'--paper':'none'}}
@@ -318,33 +319,38 @@ function applyTheme(k){
 
 /* ---------- festivos por defecto ---------- */
 const DEFAULT_FESTIVOS=[
-  {date:'2026-01-01',name:"Cap d'Any",scope:'nacional'},
-  {date:'2026-01-06',name:'Reis',scope:'nacional'},
-  {date:'2026-04-03',name:'Divendres Sant',scope:'nacional'},
-  {date:'2026-04-06',name:'Dilluns de Pasqua Florida',scope:'catalunya'},
-  {date:'2026-05-01',name:'Festa del Treball',scope:'nacional'},
-  {date:'2026-05-25',name:'Festa local de Cornellà',scope:'cornella'},
-  {date:'2026-06-05',name:'Festa Major (Corpus) de Cornellà',scope:'cornella'},
-  {date:'2026-06-24',name:'Sant Joan',scope:'catalunya'},
-  {date:'2026-08-15',name:"L'Assumpció",scope:'nacional'},
-  {date:'2026-09-11',name:'Diada Nacional de Catalunya',scope:'catalunya'},
-  {date:'2026-10-12',name:"Festa Nacional d'Espanya",scope:'nacional'},
-  {date:'2026-12-08',name:'La Immaculada',scope:'nacional'},
-  {date:'2026-12-25',name:'Nadal',scope:'nacional'},
-  {date:'2026-12-26',name:'Sant Esteve',scope:'catalunya'},
-  {date:'2027-01-01',name:"Cap d'Any",scope:'nacional'},
-  {date:'2027-01-06',name:'Reis',scope:'nacional'},
-  {date:'2027-03-26',name:'Divendres Sant',scope:'nacional'},
-  {date:'2027-03-29',name:'Dilluns de Pasqua Florida',scope:'catalunya'},
-  {date:'2027-05-01',name:'Festa del Treball',scope:'nacional'},
-  {date:'2027-06-24',name:'Sant Joan',scope:'catalunya'},
-  {date:'2027-09-11',name:'Diada Nacional de Catalunya',scope:'catalunya'},
-  {date:'2027-10-12',name:"Festa Nacional d'Espanya",scope:'nacional'},
-  {date:'2027-12-08',name:'La Immaculada',scope:'nacional'},
-  {date:'2027-12-25',name:'Nadal',scope:'nacional'},
+  {date:'2026-01-01',name:'Año Nuevo',scope:'nacional'},
+  {date:'2026-01-06',name:'Reyes',scope:'nacional'},
+  {date:'2026-04-03',name:'Viernes Santo',scope:'nacional'},
+  {date:'2026-04-06',name:'Lunes de Pascua',scope:'catalunya'},
+  {date:'2026-05-01',name:'Fiesta del Trabajo',scope:'nacional'},
+  {date:'2026-05-25',name:'Fiesta local de Cornellà',scope:'cornella'},
+  {date:'2026-06-05',name:'Fiesta Mayor (Corpus) de Cornellà',scope:'cornella'},
+  {date:'2026-06-24',name:'San Juan',scope:'catalunya'},
+  {date:'2026-08-15',name:'La Asunción',scope:'nacional'},
+  {date:'2026-09-11',name:'Diada de Cataluña',scope:'catalunya'},
+  {date:'2026-09-24',name:'La Mercè',scope:'barcelona'},
+  {date:'2026-10-12',name:'Fiesta Nacional de España',scope:'nacional'},
+  {date:'2026-12-08',name:'La Inmaculada',scope:'nacional'},
+  {date:'2026-12-25',name:'Navidad',scope:'nacional'},
+  {date:'2026-12-26',name:'San Esteban',scope:'catalunya'},
+  {date:'2027-01-01',name:'Año Nuevo',scope:'nacional'},
+  {date:'2027-01-06',name:'Reyes',scope:'nacional'},
+  {date:'2027-03-26',name:'Viernes Santo',scope:'nacional'},
+  {date:'2027-03-29',name:'Lunes de Pascua',scope:'catalunya'},
+  {date:'2027-05-01',name:'Fiesta del Trabajo',scope:'nacional'},
+  {date:'2027-06-24',name:'San Juan',scope:'catalunya'},
+  {date:'2027-09-11',name:'Diada de Cataluña',scope:'catalunya'},
+  {date:'2027-09-24',name:'La Mercè',scope:'barcelona'},
+  {date:'2027-10-12',name:'Fiesta Nacional de España',scope:'nacional'},
+  {date:'2027-12-08',name:'La Inmaculada',scope:'nacional'},
+  {date:'2027-12-25',name:'Navidad',scope:'nacional'},
 ];
-const SCOPE_LABEL={nacional:'España',catalunya:'Catalunya',cornella:'Cornellà'};
-function scopeVar(s){return s==='nacional'?'var(--festNac)':s==='catalunya'?'var(--festCat)':'var(--festCor)';}
+const SCOPE_LABEL={nacional:'España',catalunya:'Catalunya',cornella:'Cornellà',barcelona:'Barcelona'};
+function scopeVar(s){return s==='nacional'?'var(--festNac)':s==='catalunya'?'var(--festCat)':s==='barcelona'?'var(--festBcn)':'var(--festCor)';}
+// Festivos que SON día libre para Mauri (trabaja en Cornellà): nacional + Catalunya + Cornellà.
+// Los de Barcelona ciudad se muestran pero NO cuentan como no laborable.
+const OFF_SCOPES=new Set(['nacional','catalunya','cornella']);
 
 /* ---------- estado ---------- */
 const DEFAULTS={
@@ -423,7 +429,8 @@ function festivos(){
 }
 let _fset=null,_fmap=null;
 function festMap(){if(!_fmap){_fmap=new Map();festivos().forEach(f=>_fmap.set(f.date,f));}return _fmap;}
-function festivoSet(){if(!_fset)_fset=new Set(festivos().map(f=>f.date));return _fset;}
+// Solo los festivos "que libro" entran en el set que afecta a jornada/vacaciones.
+function festivoSet(){if(!_fset)_fset=new Set(festivos().filter(f=>OFF_SCOPES.has(f.scope)).map(f=>f.date));return _fset;}
 function invalidate(){_fset=null;_fmap=null;}
 
 /* ---------- núcleo ---------- */
@@ -501,6 +508,7 @@ function renderCalendar(){
     for(let day=1;day<=dim;day++){
       const d=new Date(calYear,m,day),iso=toISO(d),f=fmap.get(iso),tp=dayType(d,iso,vac);
       const isToday=iso===tIso,vis=cellVisual(tp,f&&f.scope,isToday);
+      if(f&&f.scope==='barcelona'&&tp!=='vacaciones'){const sc='var(--festBcn)';vis.col=sc;vis.weight='650';vis.bs=(vis.bs?vis.bs+',':'')+'inset 0 0 0 1.5px '+sc;}
       html+=`<button class="day" data-iso="${iso}" style="background:${vis.bg};color:${vis.col};font-weight:${vis.weight};box-shadow:${vis.bs||'none'};z-index:${isToday?2:1}"${f?` title="${escapeHtml(f.name)}"`:''}>${vis.marks}${day}</button>`;
     }
     html+='</div></div>';
