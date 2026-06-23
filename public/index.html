@@ -29,7 +29,7 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:var(--font);background-color:var(--bg);background-image:var(--paper);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;
     padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 64px max(18px,env(safe-area-inset-left));transition:background-color .2s,color .2s}
-  .wrap{max-width:980px;margin:0 auto}
+  .wrap{max-width:1280px;margin:0 auto}
   .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
   h2,h3{font-family:var(--display);letter-spacing:-.02em}
 
@@ -192,8 +192,6 @@
     <button class="sync" id="syncChip" data-s="local"><span class="ds"></span><span id="syncTxt">local</span></button>
   </header>
 
-  <div class="themes" id="themeTabs"></div>
-
   <div class="grid2">
     <div class="card pad">
       <div class="klabel">Días disponibles</div>
@@ -306,19 +304,13 @@ const THEMES={
   papel:{label:'Papel',dark:false,vars:{'--bg':'#efe9dc','--surface':'#f7f2e8','--surface2':'#e8e0cf','--border':'#d9ceb7','--border2':'#c2b495','--ink':'#2c2620','--muted':'#6f6452','--faint':'#9c917a','--pos':'#4d6b30','--neg':'#a8492f','--vac':'#7a5230','--vacInk':'#f7f2e8','--libre':'#e4dbe6','--libreInk':'#6a4978','--festNac':'#b1622c','--festCat':'#856f1c','--festCor':'#7d5a8a','--today':'#2c2620','--r':'7px',"--font":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif","--mono":"ui-monospace,'SF Mono',Menlo,monospace","--display":"ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif",'--paper':'radial-gradient(circle at 30% 20%,rgba(0,0,0,.018) 0,transparent 60%)'}},
   nocturno:{label:'Nocturno',dark:true,vars:{'--bg':'#0d0f13','--surface':'#161a21','--surface2':'#1e232c','--border':'#2a313c','--border2':'#3a424f','--ink':'#e9edf3','--muted':'#97a1af','--faint':'#5c6675','--pos':'#4ade80','--neg':'#f87171','--vac':'#38bdf8','--vacInk':'#06212e','--libre':'#2b2545','--libreInk':'#c4b5fd','--festNac':'#fb923c','--festCat':'#fbbf24','--festCor':'#c084fc','--today':'#e9edf3','--r':'12px',"--font":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif","--mono":"ui-monospace,'SF Mono',Menlo,monospace","--display":"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",'--paper':'none'}}
 };
-let theme=localStorage.getItem('vacTheme')||'cuaderno';
+let theme='cuaderno';
 function applyTheme(k){
-  if(!THEMES[k])k='cuaderno';theme=k;localStorage.setItem('vacTheme',k);
+  if(!THEMES[k])k='cuaderno';theme=k;
   const th=THEMES[k],rs=document.documentElement.style;
   for(const v in th.vars)rs.setProperty(v,th.vars[v]);
   document.documentElement.style.colorScheme=th.dark?'dark':'light';
   const tc=document.getElementById('themeColor');if(tc)tc.content=th.vars['--bg'];
-  renderThemeTabs();
-}
-function renderThemeTabs(){
-  const el=$('themeTabs');
-  el.innerHTML=Object.keys(THEMES).map(k=>`<button data-k="${k}" class="${theme===k?'on':''}">${THEMES[k].label}</button>`).join('');
-  el.querySelectorAll('button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.k));
 }
 
 /* ---------- festivos por defecto ---------- */
