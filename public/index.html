@@ -204,22 +204,15 @@
   <section class="balance">
     <div class="bhead">
       <div class="bleft">
-        <div class="lab">Saldo disponible</div>
-        <div><span class="big num" id="bigLeft">0</span><span class="unit">días</span></div>
+        <div class="lab" id="balLab">Saldo disponible</div>
+        <div><span class="big num" id="bigLeft">0</span><span class="unit">días libres</span></div>
       </div>
-      <div class="spark" id="spark" aria-hidden="true"></div>
     </div>
     <div class="row">
-      <div class="c"><span class="ck">Ingresado a hoy</span><span class="cv pos num" id="cAcc">+0</span></div>
-      <div class="c"><span class="ck">Disfrutado</span><span class="cv neg num" id="cUsed">−0</span></div>
-      <div class="c"><span class="ck">Nómina mensual</span><span class="cv num" id="cRate">0 <small>/mes</small></span></div>
-      <div class="c"><span class="ck" id="projLab">Previsión fin de año</span><span class="cv num" id="cProj">0</span></div>
-    </div>
-    <div class="next">
-      <div class="ni">↑</div>
-      <div class="ntx"><b id="nextAmt">+0 días</b><span id="nextWhen">próximo ingreso —</span></div>
-      <div class="prog"><i id="nextProg"></i></div>
-      <div class="nd" id="nextDays">—</div>
+      <div class="c"><span class="ck" id="ckEnt">Asignados</span><span class="cv pos num" id="cEnt">0</span></div>
+      <div class="c"><span class="ck">Disfrutados</span><span class="cv neg num" id="cUsed">−0</span></div>
+      <div class="c"><span class="ck">Por coger (futuro)</span><span class="cv num" id="cFuture">0</span></div>
+      <div class="c"><span class="ck" id="ckNext">Año que viene</span><span class="cv num" id="cNext">0</span></div>
     </div>
   </section>
 
@@ -389,79 +382,51 @@ function festivos(){
 function festivoSet(){return new Set(festivos().map(f=>f.date))}
 function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 
-const perMonth=()=>state.totalDaysPerYear/12;
-function firstPay(){const s=pd(state.contractStart);return new Date(s.getFullYear(),s.getMonth(),1);}
-// Mensualidades devengadas: una por cada mes natural desde el mes de alta (inclusive),
-// a partir del día en que empieza el contrato. Empezar el 1 de julio → jul..dic = 6 meses.
-function monthsAccrued(asOf){
-  const s=pd(state.contractStart),t=asOf||today0();
-  if(t<s)return 0;
-  const f=firstPay();
-  return Math.max(0,(t.getFullYear()-f.getFullYear())*12+(t.getMonth()-f.getMonth())+1);
+// Modelo: asignación anual disponible desde el primer día, que se reinicia cada año.
+// El año de alta se prorratea por los meses desde el mes de inicio hasta diciembre.
+function entitlement(year){
+  const s=pd(state.contractStart),sy=s.getFullYear();
+  if(year<sy)return 0;
+  if(year>sy)return r1(state.totalDaysPerYear);
+  const months=12-s.getMonth(); // alta en julio (mes 6) → 6 meses
+  return r1(state.totalDaysPerYear*months/12);
 }
-function accrued(){return r1(monthsAccrued()*perMonth())}
-function usedDays(){return state.vacations.reduce((s,v)=>s+daysBetween(v.from,v.to),0)}
-
-function buildEvents(){
-  const ev=[],f=firstPay(),n=monthsAccrued();
-  for(let k=0;k<n;k++){const dt=new Date(f.getFullYear(),f.getMonth()+k,1);
-    ev.push({kind:'in',date:dt,amt:perMonth(),label:'Devengo de '+MESL[dt.getMonth()]});}
-  state.vacations.forEach(v=>{ev.push({kind:'out',date:pd(v.to),amt:-daysBetween(v.from,v.to),
-    label:v.note?escapeHtml(v.note):'Vacaciones',from:v.from,to:v.to,id:v.id});});
-  ev.sort((a,b)=>(a.date-b.date)||(a.kind===b.kind?0:a.kind==='in'?-1:1));
-  let run=0;ev.forEach(e=>{run+=e.amt;e.bal=r1(run)});
-  return ev;
+// Días naturales de un periodo que caen en un año concreto (DST-safe). onlyFuture: solo de hoy en adelante.
+function vacDays(v,year,onlyFuture){
+  let c=0,t=today0();
+  for(let d=pd(v.from);d<=pd(v.to);d.setDate(d.getDate()+1)){
+    if(d.getFullYear()!==year)continue;
+    if(onlyFuture&&d<t)continue;
+    c++;
+  }
+  return c;
+}
+function usedInYear(year){return state.vacations.reduce((s,v)=>s+vacDays(v,year,false),0)}
+function futureInYear(year){return state.vacations.reduce((s,v)=>s+vacDays(v,year,true),0)}
+function vacYear(v){return pd(v.from).getFullYear()}
+function yearsRange(){
+  const ys=new Set(),cy=today0().getFullYear(),sy=pd(state.contractStart).getFullYear();
+  for(let y=sy;y<=Math.max(cy,sy);y++)ys.add(y);
+  state.vacations.forEach(v=>ys.add(vacYear(v)));
+  return [...ys].sort((a,b)=>b-a);
 }
 
-function renderBalance(ev){
-  const total=accrued(),used=usedDays(),left=r1(total-used);
-  const bl=$('bigLeft');bl.textContent=left;bl.classList.toggle('neg',left<0);
-  $('cAcc').textContent='+'+r1(total);
+function renderBalance(){
+  const year=today0().getFullYear();
+  const ent=entitlement(year),used=usedInYear(year),avail=r1(ent-used);
+  $('balLab').textContent='Saldo disponible '+year;
+  const bl=$('bigLeft');bl.textContent=avail;bl.classList.toggle('neg',avail<0);
+  $('ckEnt').textContent='Asignados '+year;
+  $('cEnt').textContent='+'+ent;
   $('cUsed').textContent='−'+used;
-  $('cRate').innerHTML=r1(perMonth())+' <small>/mes</small>';
+  $('cFuture').textContent=futureInYear(year);
+  $('ckNext').textContent='Año que viene';
+  $('cNext').textContent=entitlement(year+1);
   $('contractDisp').textContent=fmtShort(state.contractStart);
-
-  const t=today0(),yEnd=new Date(t.getFullYear(),11,31),f=firstPay();
-  let future=0;for(let k=monthsAccrued();k<240;k++){const dt=new Date(f.getFullYear(),f.getMonth()+k,1);if(dt>yEnd)break;if(dt>t)future+=perMonth();}
-  $('projLab').textContent='Previsión 31 dic '+t.getFullYear();
-  $('cProj').textContent=r1(left+future);
-
-  const ma=monthsAccrued(),nextDate=new Date(f.getFullYear(),f.getMonth()+ma,1),prevDate=ma?new Date(f.getFullYear(),f.getMonth()+ma-1,1):pd(state.contractStart);
-  const totalSpan=Math.max(1,Math.round((nextDate-prevDate)/MS)),done=Math.max(0,Math.round((t-prevDate)/MS));
-  const daysLeft=Math.max(0,Math.ceil((nextDate-t)/MS));
-  $('nextAmt').textContent='+'+r1(perMonth())+' días';
-  $('nextWhen').textContent='próximo devengo · '+fmtShort(nextDate);
-  $('nextProg').style.width=Math.min(100,done/totalSpan*100)+'%';
-  $('nextDays').textContent='en '+daysLeft+'d';
 }
 
-function renderSpark(ev){
-  const el=$('spark');
-  if(ev.length<2){el.innerHTML='';return;}
-  const pts=[{x:pd(state.contractStart).getTime(),y:0},...ev.map(e=>({x:e.date.getTime(),y:e.bal}))];
-  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
-  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(0,...ys),y1=Math.max(...ys,0.1);
-  const W=100,H=40,pad=2;
-  const sx=x=>x1===x0?0:((x-x0)/(x1-x0))*W;
-  const sy=y=>H-pad-((y-y0)/(y1-y0||1))*(H-pad*2);
-  const line=pts.map((p,i)=>(i?'L':'M')+sx(p.x).toFixed(2)+' '+sy(p.y).toFixed(2)).join(' ');
-  const area=line+` L ${W} ${H} L 0 ${H} Z`;
-  const zeroY=sy(0).toFixed(2);
-  const last=pts[pts.length-1];
-  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="oklch(54% 0.13 158)" stop-opacity=".22"/>
-      <stop offset="1" stop-color="oklch(54% 0.13 158)" stop-opacity="0"/>
-    </linearGradient></defs>
-    <line class="zero" x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}"/>
-    <path class="area" d="${area}"/>
-    <path class="ln" d="${line}" vector-effect="non-scaling-stroke"/>
-    <circle class="dot" cx="${sx(last.x).toFixed(2)}" cy="${sy(last.y).toFixed(2)}" r="2.2"/>
-  </svg>`;
-}
-
-function renderTabs(ev){
-  const years=[...new Set(ev.map(e=>e.date.getFullYear()))].sort((a,b)=>b-a);
+function renderTabs(){
+  const years=yearsRange();
   if(filterYear!=='all'&&!years.includes(filterYear))filterYear='all';
   const tabs=$('tabs');
   tabs.innerHTML=`<button data-y="all" class="${filterYear==='all'?'on':''}">Todo</button>`+
@@ -471,34 +436,30 @@ function renderTabs(ev){
   tabs.style.display=years.length?'':'none';
 }
 
-function renderLedger(ev){
+function renderLedger(){
   const list=$('list');
-  if(!ev.length){
-    list.innerHTML='<div class="empty"><b>Cuenta nueva.</b><br>Tus ingresos mensuales aparecerán aquí en cuanto cumplas el primer mes. Registra un gasto arriba para empezar el extracto.</div>';return;
-  }
-  let rows=ev.slice().reverse();
-  if(filterYear!=='all')rows=rows.filter(e=>e.date.getFullYear()===filterYear);
-  if(!rows.length){list.innerHTML='<div class="empty">Sin movimientos en '+filterYear+'.</div>';return;}
-  let html='',lastKey='';
-  rows.forEach(e=>{
-    const key=e.date.getFullYear()+'-'+e.date.getMonth();
-    if(key!==lastKey){html+=`<div class="mvgroup">${MESL[e.date.getMonth()]} ${e.date.getFullYear()}</div>`;lastKey=key;}
-    if(e.kind==='in'){
-      html+=`<div class="mv income">
-        <div class="ic in">+</div>
-        <div class="desc"><div class="d1">${e.label}</div><div class="d2">${fmtShort(e.date)}</div></div>
-        <div class="amt in num">+${r1(e.amt)}</div>
-        <div class="bal num">${e.bal}</div>
-        <span></span></div>`;
-    }else{
-      const range=e.from===e.to?fmtShort(e.from):`${fmtShort(e.from)} → ${fmtShort(e.to)}`;
+  let years=yearsRange();
+  if(filterYear!=='all')years=years.filter(y=>y===filterYear);
+  let html='';
+  years.forEach(y=>{
+    const ent=entitlement(y),used=usedInYear(y),avail=r1(ent-used);
+    html+=`<div class="mvgroup">${y} · ${ent} asignados · ${used} cogidos · ${avail} disponibles</div>`;
+    const vacs=state.vacations.filter(v=>vacYear(v)===y).sort((a,b)=>a.from<b.from?1:-1);
+    if(!vacs.length){
+      html+=`<div class="mv"><div class="ic in" style="background:transparent"></div>
+        <div class="desc"><div class="d1" style="color:var(--muted);font-weight:500">Sin vacaciones registradas este año</div></div>
+        <div></div><div></div><span></span></div>`;
+    }
+    vacs.forEach(v=>{
+      const d=daysBetween(v.from,v.to);
+      const range=v.from===v.to?fmtShort(v.from):`${fmtShort(v.from)} → ${fmtShort(v.to)}`;
       html+=`<div class="mv">
         <div class="ic out">−</div>
-        <div class="desc"><div class="d1">${e.label}</div><div class="d2">${range}</div></div>
-        <div class="amt out num">${r1(e.amt)}</div>
-        <div class="bal num">${e.bal}</div>
-        <button class="del" data-id="${e.id}" aria-label="Eliminar">×</button></div>`;
-    }
+        <div class="desc"><div class="d1">${v.note?escapeHtml(v.note):'Vacaciones'}</div><div class="d2">${range}</div></div>
+        <div class="amt out num">−${d}</div>
+        <div class="bal num">${d} día${d>1?'s':''}</div>
+        <button class="del" data-id="${v.id}" aria-label="Eliminar">×</button></div>`;
+    });
   });
   list.innerHTML=html;
   list.querySelectorAll('.del').forEach(b=>b.onclick=()=>removeVacation(Number(b.dataset.id)));
@@ -534,15 +495,14 @@ function renderFestivos(){
 }
 
 function renderAll(){
-  const ev=buildEvents();
-  renderBalance(ev);renderSpark(ev);renderTabs(ev);renderLedger(ev);renderFestivos();
+  renderBalance();renderTabs();renderLedger();renderFestivos();
   $('cfgTotal').value=state.totalDaysPerYear;$('cfgStart').value=state.contractStart;
 }
 
 /* ---------- acciones ---------- */
 function rangeNote(from,to){
   const fset=festivoSet();let fest=0,wknd=0;
-  for(let d=pd(from);d<=pd(to);d=new Date(d.getTime()+MS)){
+  for(let d=pd(from);d<=pd(to);d.setDate(d.getDate()+1)){
     const iso=toISO(d),wd=d.getDay();
     if(fset.has(iso))fest++;else if(wd===0||wd===6)wknd++;
   }
