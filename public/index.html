@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
   :root{
     --bg:#f6f6f3; --surface:#ffffff; --surface2:#f0f0ec; --border:#e3e3dc; --border2:#cccbc1;
@@ -184,10 +185,27 @@
     .askbar .btn-ink{margin-left:0;width:100%}
     .fadd{grid-template-columns:1fr 1fr}
   }
+
+  .login{position:fixed;inset:0;background-color:var(--bg);background-image:var(--paper);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100}
+  .loginbox{background:var(--surface);border:1px solid var(--border);border-radius:calc(var(--r)*2);padding:34px 30px;max-width:360px;width:100%;text-align:center;box-shadow:0 18px 50px -24px rgba(15,20,40,.3)}
+  .loginbox h1{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-.02em;margin:0 0 6px}
+  .loginbox p{font-size:13.5px;color:var(--muted);line-height:1.5}
+  .loginbox .loginerr{color:var(--neg);font-size:12px;min-height:1em;margin-top:10px}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="login" id="login">
+  <div class="loginbox">
+    <div class="mark" style="width:44px;height:44px;border-radius:12px;background:var(--ink);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>
+    </div>
+    <h1>Vacaciones</h1>
+    <p id="loginMsg">Acceso privado. Inicia sesión con tu cuenta de Google.</p>
+    <div id="gbtn" style="display:flex;justify-content:center;margin-top:18px;min-height:44px"></div>
+    <p class="loginerr" id="loginErr"></p>
+  </div>
+</div>
+<div class="wrap" id="app" style="display:none">
   <header class="top">
     <div class="brand">
       <div class="mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg></div>
@@ -269,9 +287,9 @@
       <div class="pattern full" id="patternBtns"></div>
 
       <div class="sep"></div>
-      <div class="subh">Sincronización</div>
-      <label class="full">Token<input type="password" id="cfgToken" placeholder="token del servidor"></label>
-      <button class="btn-soft full" id="saveToken">Guardar token y sincronizar</button>
+      <div class="subh">Sesión</div>
+      <p class="hint" id="sessLine" style="margin-top:0">—</p>
+      <button class="btn-soft full" id="logoutBtn">Cerrar sesión</button>
 
       <div class="sep"></div>
       <div class="subh">Añadir festivo</div>
@@ -361,10 +379,7 @@ const DEFAULTS={
 let state=structuredClone(DEFAULTS);
 let filterYear='all', festYear=null, calYear=null;
 const $=id=>document.getElementById(id);
-const KEY='vacacionesState',TKEY='vacToken';
-const DEFAULT_TOKEN='62aaa4dde47af5afb200a5c2d6b429a4b165cd5b703365f9';
-let token=localStorage.getItem(TKEY)||DEFAULT_TOKEN;
-try{localStorage.setItem(TKEY,token);}catch(e){}
+const KEY='vacacionesState';
 
 function migrate(){
   for(const k in DEFAULTS) if(state[k]===undefined) state[k]=structuredClone(DEFAULTS[k]);
@@ -378,13 +393,12 @@ function load(){const s=localStorage.getItem(KEY);if(s)try{state=Object.assign(s
 /* ---------- sincronización ---------- */
 const API='/api/state';
 let pushTimer=null;
-function setSync(s,txt){const c=$('syncChip');c.dataset.s=s;$('syncTxt').textContent=txt||({ok:'Sincronizado',pending:'Guardando…',offline:'Sin conexión',error:'Error',token:'Falta token',local:'Solo local'}[s]||s);}
-function authHeaders(extra){const h=Object.assign({},extra||{});if(token)h['Authorization']='Bearer '+token;return h;}
+function setSync(s,txt){const c=$('syncChip');c.dataset.s=s;$('syncTxt').textContent=txt||({ok:'Sincronizado',pending:'Guardando…',offline:'Sin conexión',error:'Error',token:'Inicia sesión',local:'Solo local'}[s]||s);}
 function adopt(remote){state=Object.assign(structuredClone(DEFAULTS),remote);migrate();saveLocal();renderAll();}
 async function pullState(){
   try{
-    const r=await fetch(API,{headers:authHeaders(),cache:'no-store'});
-    if(r.status===401){setSync('token');return;}
+    const r=await fetch(API,{credentials:'include',cache:'no-store'});
+    if(r.status===401){setSync('token');showLogin();return;}
     if(r.status===204){setSync('ok');return;}
     if(!r.ok)throw 0;
     const remote=await r.json();
@@ -392,17 +406,16 @@ async function pullState(){
     setSync('ok');
   }catch(e){setSync('offline');}
 }
-function schedulePush(){if(!token){setSync('local');return;}setSync('pending');clearTimeout(pushTimer);pushTimer=setTimeout(doPush,800);}
+function schedulePush(){setSync('pending');clearTimeout(pushTimer);pushTimer=setTimeout(doPush,800);}
 async function doPush(){
   try{
-    const r=await fetch(API,{method:'PUT',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify(state)});
-    if(r.status===401){setSync('token');return;}
+    const r=await fetch(API,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+    if(r.status===401){setSync('token');showLogin();return;}
     if(r.status===409){const remote=await r.json();adopt(remote);setSync('ok');return;}
     if(!r.ok)throw 0; setSync('ok');
   }catch(e){setSync('offline');}
 }
 function touch(){state.updatedAt=Date.now();saveLocal();schedulePush();}
-function setToken(t){token=(t||'').trim();if(token)localStorage.setItem(TKEY,token);else localStorage.removeItem(TKEY);}
 
 /* ---------- utilidades fecha ---------- */
 const MS=86400000;
@@ -670,10 +683,45 @@ function addFestivo(){
 function resetFestivos(){if(!confirm('¿Restaurar los festivos por defecto? Se pierden tus añadidos y quitados.'))return;state.festivos={added:[],removed:[]};touch();renderAll();}
 function saveCfg(){state.totalDaysPerYear=parseFloat($('cfgTotal').value)||30;state.contractStart=$('cfgStart').value||'2026-07-01';touch();renderAll();const b=$('saveCfg'),t=b.textContent;b.textContent='Guardado';setTimeout(()=>b.textContent=t,1200)}
 function saveHours(){const h=parseFloat($('cfgHours').value);if(!isNaN(h)){state.hoursPerDay=h;touch();renderSummary();}}
-function saveTokenCfg(){setToken($('cfgToken').value);$('cfgToken').value='';const b=$('saveToken');b.textContent='Sincronizando…';pullState().then(()=>{schedulePush();b.textContent='Guardado';setTimeout(()=>b.textContent='Guardar token y sincronizar',1400)});}
 function resetAll(){if(!confirm('¿Borrar todos los datos de este dispositivo?'))return;localStorage.removeItem(KEY);state=structuredClone(DEFAULTS);filterYear='all';festYear=null;calYear=null;touch();renderAll()}
 function flash(btn,msg){const t=btn.textContent;btn.textContent=msg;setTimeout(()=>btn.textContent=t,1100)}
-function askToken(){const t=prompt('Token de sincronización:',token||'');if(t!==null){setToken(t);pullState().then(schedulePush);}}
+
+/* ---------- login Google ---------- */
+let CLIENT_ID='';
+async function boot(){
+  applyTheme(theme);
+  let cfg={};try{cfg=await fetch('/api/config').then(r=>r.json());}catch(e){}
+  CLIENT_ID=cfg.clientId||'';
+  let me=null;try{const r=await fetch('/api/me',{credentials:'include'});if(r.ok)me=await r.json();}catch(e){}
+  if(me)startApp(me.email);else showLogin();
+}
+function startApp(email){
+  $('login').style.display='none';$('app').style.display='';
+  $('sessLine').textContent=email&&email!=='open'?('Conectado como '+email):'Sin login (modo abierto)';
+  load();renderAll();updateAddBtn();
+  setSync('pending');pullState();
+}
+let _gsiInit=false;
+function showLogin(){
+  $('app').style.display='none';$('login').style.display='flex';
+  if(!CLIENT_ID){$('loginMsg').textContent='El login con Google aún no está configurado en el servidor.';return;}
+  (function tryInit(){
+    if(!(window.google&&google.accounts&&google.accounts.id))return setTimeout(tryInit,200);
+    if(!_gsiInit){google.accounts.id.initialize({client_id:CLIENT_ID,callback:onCredential});_gsiInit=true;}
+    $('gbtn').innerHTML='';
+    google.accounts.id.renderButton($('gbtn'),{theme:'outline',size:'large',text:'signin_with',shape:'pill',locale:'es'});
+  })();
+}
+async function onCredential(resp){
+  $('loginErr').textContent='';
+  try{
+    const r=await fetch('/api/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:resp.credential})});
+    if(r.ok){const d=await r.json();startApp(d.email);}
+    else if(r.status===403)$('loginErr').textContent='Esa cuenta no tiene acceso.';
+    else $('loginErr').textContent='No se pudo iniciar sesión.';
+  }catch(e){$('loginErr').textContent='Error de conexión.';}
+}
+async function logout(){try{await fetch('/api/logout',{method:'POST',credentials:'include'});}catch(e){}location.reload();}
 
 /* ---------- arranque ---------- */
 $('addBtn').onclick=addVacation;
@@ -682,18 +730,15 @@ $('dateFrom').addEventListener('change',updateAddBtn);
 $('dateTo').addEventListener('change',updateAddBtn);
 $('saveCfg').onclick=saveCfg;
 $('cfgHours').addEventListener('change',saveHours);
-$('saveToken').onclick=saveTokenCfg;
+$('logoutBtn').onclick=logout;
 $('fAddBtn').onclick=addFestivo;
 $('fResetBtn').onclick=resetFestivos;
 $('resetBtn').onclick=resetAll;
-$('syncChip').onclick=()=>{if(!token)askToken();else pullState();};
+$('syncChip').onclick=()=>pullState();
 $('dayModal').onclick=e=>{if(e.target===$('dayModal'))closeDay();};
 window.addEventListener('online',pullState);
 
-applyTheme(theme);
-load();renderAll();updateAddBtn();
-setSync(token?'pending':'local');
-pullState();
+boot();
 if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
 </script>
 </body>
