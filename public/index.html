@@ -161,6 +161,8 @@
     border:none;border-radius:7px;cursor:pointer;padding:0;line-height:1;font-variant-numeric:tabular-nums;transition:transform .08s ease}
   .day:not(.blank):active{transform:scale(.9)}
   .day.blank{visibility:hidden;cursor:default;background:none!important;box-shadow:none!important}
+  .day .fmark{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--surface) 78%,transparent)}
+  .day.vacaciones .fmark,.day.libre .fmark{background:currentColor;box-shadow:none;opacity:.85}
 
   h3.sec{font-family:var(--display);font-weight:640;font-size:15px;margin:0}
   .reslist{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:calc(var(--r)*.55);overflow:hidden;margin-top:14px}
@@ -320,6 +322,7 @@
     <span class="lg"><span class="sw finde"></span>Fin de semana</span>
     <span class="lg"><span class="sw trabajo"></span>Trabajo</span>
     <span class="lg"><span class="sw hoy"></span>Hoy</span>
+    <span class="lg"><span style="width:9px;height:9px;border-radius:50%;background:var(--pos);flex:none"></span>Fichado</span>
   </div>
   <div class="calgrid" id="calGrid"></div>
   <div style="display:flex;justify-content:center;margin-top:18px"><button id="calMoreBtn">Ver más</button></div>
@@ -540,6 +543,8 @@ function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>
 /* ---------- festivos derivados ---------- */
 // Calendario laboral oficial traído de IMFALU (autoridad). Vacío hasta cargarlo.
 let imfaluHolidays=[];
+// Días con fichaje real validado en IMFALU (para marcarlos en el calendario).
+let fichajeSet=new Set();
 function festivos(){
   const removed=new Set(state.festivos.removed||[]);
   const map=new Map();
@@ -646,7 +651,8 @@ function monthHTML(year,m,vac,fmap,tIso){
     const d=new Date(year,m,day),iso=toISO(d),f=fmap.get(iso),tp=dayType(d,iso,vac);
     const isToday=iso===tIso,vis=cellVisual(tp,f&&f.scope,isToday);
     if(rangeMode&&iso===rangeStart)vis.bs=(vis.bs?vis.bs+',':'')+'inset 0 0 0 2px var(--vac)';
-    html+=`<button class="day" data-iso="${iso}" style="background:${vis.bg};color:${vis.col};font-weight:${vis.weight};box-shadow:${vis.bs||'none'};z-index:${isToday?2:1}"${f?` title="${escapeHtml(f.name)}"`:''}>${vis.marks}${day}</button>`;
+    const fich=fichajeSet.has(iso)?'<span class="fmark"></span>':'';
+    html+=`<button class="day${fich?' hasfich':''}" data-iso="${iso}" style="background:${vis.bg};color:${vis.col};font-weight:${vis.weight};box-shadow:${vis.bs||'none'};z-index:${isToday?2:1}"${f?` title="${escapeHtml(f.name)}"`:''}>${vis.marks}${day}${fich}</button>`;
   }
   return html+'</div></div>';
 }
@@ -920,7 +926,7 @@ function startApp(email){
   $('sessLine').textContent=email&&email!=='open'?('Conectado como '+email):'Sin login (modo abierto)';
   load();renderAll();updateAddBtn();
   setSync('pending');pullState();
-  loadFichaje();loadHolidays();
+  loadFichaje();loadHolidays();loadFichajeDays();
 }
 let _gsiInit=false;
 function showLogin(){
@@ -983,6 +989,15 @@ async function loadHolidays(){
     const M={NATIONAL:'nacional',REGIONAL:'catalunya',LOCAL:'barcelona',BRIDGE:'empresa'};
     imfaluHolidays=data.holidays.map(h=>({date:h.date,name:h.name,scope:M[h.type]||'nacional'}));
     invalidate();renderAll();
+  }catch(e){}
+}
+async function loadFichajeDays(){
+  try{
+    const r=await fetch('/api/fichaje?from=2026-01-01&to=2028-01-01',{credentials:'include'});
+    if(!r.ok)return;const data=await r.json();
+    if(!data||!data.enabled||!Array.isArray(data.days))return;
+    fichajeSet=new Set(data.days.map(d=>d.date));
+    renderCalendar();
   }catch(e){}
 }
 
