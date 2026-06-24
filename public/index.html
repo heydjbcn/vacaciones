@@ -52,18 +52,18 @@
   .themes button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.10)}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
-  .pad{padding:20px 22px}
+  .pad{padding:15px 18px}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:14px}
   .grid2b{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:34px}
 
   .klabel{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--mono)}
-  .bigrow{display:flex;align-items:baseline;gap:8px;margin:6px 0 16px}
-  .big{font-family:var(--display);font-weight:700;font-size:54px;line-height:.9;letter-spacing:-.03em;color:var(--pos)}
+  .bigrow{display:flex;align-items:baseline;gap:8px;margin:2px 0 12px}
+  .big{font-family:var(--display);font-weight:700;font-size:40px;line-height:.9;letter-spacing:-.03em;color:var(--pos)}
   .big.neg{color:var(--neg)}
   .bigsub{font-size:13px;color:var(--muted)}
   .cells{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:calc(var(--r)*1.4);overflow:hidden}
   .metrics{grid-template-columns:1fr 1fr}
-  .cells .cell{background:var(--surface);padding:11px 13px;display:flex;flex-direction:column;gap:2px}
+  .cells .cell{background:var(--surface);padding:9px 12px;display:flex;flex-direction:column;gap:2px}
   .cell .cv{font-family:var(--mono);font-weight:600;font-size:18px;color:var(--ink)}
   .cell .ck{font-size:11px;color:var(--muted)}
   .jcard{display:flex;flex-direction:column}
@@ -73,7 +73,7 @@
   .jv{font-family:var(--mono);font-weight:600;font-size:16px;color:var(--ink)}
   .jv small{color:var(--faint);font-weight:500}
 
-  .askbar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:8px}
+  .askbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:12px 14px;margin-bottom:6px}
   .asktitle{font-size:13px;font-weight:600;padding-bottom:9px;margin-right:2px}
   .fld{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em}
   input,select{font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--surface2);border:1px solid var(--border);border-radius:calc(var(--r)*1.2);padding:9px 11px;width:100%}
@@ -231,23 +231,18 @@
         <div class="cell"><span class="cv num" id="cNext">0</span><span class="ck">Año que viene</span></div>
       </div>
     </div>
-    <div class="card pad jcard">
-      <div class="klabel">Jornada</div>
-      <div class="jgrid">
-        <div class="jrow"><span class="jk">Esta semana</span><span class="jv num" id="jWeek">—</span></div>
-        <div class="jrow"><span class="jk">Este mes</span><span class="jv num" id="jMonth">—</span></div>
+    <div class="card pad" id="fichajeSummary" style="display:none">
+      <div class="fhdr"><div class="klabel">Control horario</div><span class="klabel">IMFALU</span></div>
+      <div class="cells" style="grid-template-columns:1fr 1fr;margin-top:10px">
+        <div class="cell"><span class="cv num" id="fhWeek">—</span><span class="ck" id="fhWeekSub">Esta semana</span></div>
+        <div class="cell"><span class="cv num" id="fhMonth">—</span><span class="ck" id="fhMonthSub">Este mes</span></div>
       </div>
+      <details id="fichajeCard" style="margin-top:10px">
+        <summary class="hint" style="cursor:pointer;list-style:none">Ver registro de jornada</summary>
+        <div id="fichajeLog" style="margin-top:8px"></div>
+        <p class="hint" id="fichajeFoot" style="margin-top:8px"></p>
+      </details>
     </div>
-  </div>
-
-  <div class="card pad" id="fichajeCard" style="display:none;margin-bottom:14px">
-    <div class="fhdr"><h3 class="sec">Control horario</h3><span class="klabel">IMFALU</span></div>
-    <div class="cells" style="grid-template-columns:1fr 1fr;margin-top:4px">
-      <div class="cell"><span class="cv num" id="fhWeek">—</span><span class="ck" id="fhWeekSub">Esta semana</span></div>
-      <div class="cell"><span class="cv num" id="fhMonth">—</span><span class="ck" id="fhMonthSub">Este mes</span></div>
-    </div>
-    <div id="fichajeLog" style="margin-top:14px"></div>
-    <p class="hint" id="fichajeFoot" style="margin-top:10px"></p>
   </div>
 
   <div class="card askbar">
@@ -529,11 +524,6 @@ function renderSummary(){
   else{$('ckFuture').textContent='Por disfrutar';$('cFuture').textContent=usedInYear(year,true);}
   $('cNext').textContent=entitlement(year+1);
   $('contractDisp').textContent='Contrato · desde '+fmtDMY(state.contractStart);
-  const t=today0(),h=state.hoursPerDay||0;
-  const [wA,wB]=weekBounds(t),wd=workedDays(wA,wB);
-  const [mA,mB]=monthBounds(t),md=workedDays(mA,mB);
-  $('jWeek').innerHTML=wd+' días <small>· '+r1(wd*h)+' h</small>';
-  $('jMonth').innerHTML=md+' días <small>· '+r1(md*h)+' h</small>';
 }
 
 function cellVisual(tp,scope,isToday){
@@ -847,7 +837,7 @@ function fmtH(min){return r1((min||0)/60)+' h';}
 function hmMadrid(iso){try{return new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}).format(new Date(iso));}catch(e){return '—';}}
 function balTxt(net,n,dayMin){if(!dayMin||!n)return '';const balH=r1((net-n*dayMin)/60);const pos=balH>=0;return ` · <b style="color:var(--${pos?'pos':'neg'})">${pos?'+':'−'}${Math.abs(balH)} h</b> vs estándar`;}
 async function loadFichaje(){
-  const card=$('fichajeCard');
+  const card=$('fichajeSummary');
   const t=today0(),from=toISO(new Date(t.getFullYear(),t.getMonth()-1,1)),to=toISO(t);
   let data;
   try{const r=await fetch('/api/fichaje?from='+from+'&to='+to,{credentials:'include'});if(!r.ok){card.style.display='none';return;}data=await r.json();}catch(e){card.style.display='none';return;}
@@ -865,7 +855,7 @@ async function loadFichaje(){
   const log=$('fichajeLog');
   if(!days.length){log.innerHTML='<div class="empty">Aún no hay días validados en IMFALU. Aparecerán aquí cuando valides tu jornada en el panel.</div>';}
   else{
-    const recent=days.slice(-14).reverse();
+    const recent=days.slice(-7).reverse();
     log.innerHTML='<div class="reslist">'+recent.map(d=>{
       const inT=d.inIso?hmMadrid(d.inIso):'—',outT=d.outIso?hmMadrid(d.outIso):'—';
       return `<div class="vrow"><span class="vd">${fmtShort(d.date)}</span><span class="vn">${inT}–${outT}${d.pauseMinutes?' · pausa '+d.pauseMinutes+'m':''}</span><span class="vc">${fmtH(d.netMinutes)}</span></div>`;
