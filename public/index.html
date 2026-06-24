@@ -130,6 +130,14 @@
   .tabs button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
 
   .calwrap{position:relative}
+  .calside{position:absolute;top:0;z-index:31;display:flex;align-items:center;gap:10px;height:44px}
+  .calside.left{left:4px} .calside.right{right:4px}
+  .calside h2{font-size:21px;font-weight:var(--dispW);margin:0}
+  @media(max-width:960px){
+    .calside{position:static;height:auto}
+    .calside.left{margin-bottom:10px} .calside.right{justify-content:flex-end;margin-top:10px}
+    .legend{margin-left:0!important;margin-right:0!important}
+  }
   .legend{display:flex;flex-wrap:wrap;gap:7px 16px;position:sticky;top:8px;z-index:30;width:fit-content;max-width:100%;margin:0 auto 16px;
     background:transparent;backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
     padding:11px 18px;border:1px solid color-mix(in srgb,#fff 30%,transparent);border-radius:99px;
@@ -310,23 +318,20 @@
   </div>
   <p class="addnote" id="addNote"></p>
 
-  <div class="sechead">
-    <h2>Calendario</h2>
-    <div class="tabs" id="calTabs"></div>
-    <button class="btn-soft" id="rangeBtn" style="margin-left:auto;padding:7px 13px;font-size:12px">Marcar rango</button>
-  </div>
-  <p class="addnote" id="rangeHint" style="display:none;margin:-4px 4px 14px"></p>
   <div class="calwrap">
+  <div class="calside left"><h2>Calendario</h2><div class="tabs" id="calTabs"></div></div>
   <div class="legend">
     <span class="lg"><span class="sw vacaciones"></span>Vacaciones</span>
     <span class="lg"><span class="sw libre"></span>Día libre</span>
-    <span class="lg"><span class="sw festivo"></span>Festivo (ámbito)</span>
-    <span class="lg"><span class="sw finde"></span>Fin de semana</span>
+    <span class="lg"><span class="sw festivo"></span>Festivo</span>
+    <span class="lg"><span class="sw finde"></span>Finde</span>
     <span class="lg"><span class="sw trabajo"></span>Trabajo</span>
     <span class="lg"><span class="sw hoy"></span>Hoy</span>
     <span class="lg"><span style="width:9px;height:9px;border-radius:50%;background:#e0578a;flex:none"></span>Fichado</span>
   </div>
-  <div class="calgrid" id="calGrid"></div>
+  <div class="calside right"><button class="btn-soft" id="rangeBtn" style="padding:7px 13px;font-size:12px">Marcar rango</button></div>
+  <p class="addnote" id="rangeHint" style="display:none;margin:6px 4px 0"></p>
+  <div class="calgrid" id="calGrid" style="margin-top:14px"></div>
   <div style="display:flex;justify-content:center;margin-top:18px"><button id="calMoreBtn">Ver más</button></div>
   </div>
 
