@@ -573,6 +573,7 @@ function vacationDates(){const s=new Set();state.vacations.forEach(v=>{for(let d
 function dayType(d,iso,vac){
   if(vac.has(iso))return 'vacaciones';
   if(festivoSet().has(iso))return 'festivo';
+  if(fichajeSet.has(iso))return 'trabajo';   // si fichaste de verdad, manda sobre el patrón/finde
   if(isWeekend(d))return 'finde';
   if(isPersonalFree(d,iso))return 'libre';
   return 'trabajo';
