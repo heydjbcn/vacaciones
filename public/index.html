@@ -227,7 +227,7 @@
       <div class="cells metrics">
         <div class="cell"><span class="cv num" id="cEnt">0</span><span class="ck">Asignados</span></div>
         <div class="cell"><span class="cv num" id="cUsed">0</span><span class="ck">Cogidas</span></div>
-        <div class="cell"><span class="cv num" id="cFuture">0</span><span class="ck">Por disfrutar</span></div>
+        <div class="cell"><span class="cv num" id="cFuture">0</span><span class="ck" id="ckFuture">Por disfrutar</span></div>
         <div class="cell"><span class="cv num" id="cNext">0</span><span class="ck">Año que viene</span></div>
       </div>
     </div>
@@ -300,11 +300,12 @@
     <summary>Ajustes</summary>
     <div class="setgrid">
       <div class="subh">Vacaciones y contrato</div>
-      <label>Días / año (laborables)<input type="number" id="cfgTotal" step="0.5" min="0"></label>
+      <label>Días / año (naturales)<input type="number" id="cfgTotal" step="0.5" min="0"></label>
       <label>Inicio de contrato<input type="date" id="cfgStart"></label>
       <label>Horas / día<input type="number" id="cfgHours" step="0.5" min="0"></label>
+      <label>Arrastre caduca (DD/MM)<input type="text" id="cfgCarry" placeholder="30/04" maxlength="5"></label>
       <button class="btn-soft" id="saveCfg" style="align-self:end">Guardar</button>
-      <p class="hint">Un periodo descuenta solo días laborables (ni findes, ni festivos, ni días libres). El año de alta se prorratea.</p>
+      <p class="hint">Un periodo descuenta TODOS sus días naturales (findes y festivos incluidos), como tu empresa. El año de alta se prorratea. Los días sin disfrutar pasan al año siguiente y caducan en la fecha indicada.</p>
 
       <div class="sep"></div>
       <div class="subh">Patrón semanal (activo = día libre)</div>
@@ -393,7 +394,7 @@ function scopeVar(s){return s==='nacional'?'var(--festNac)':s==='catalunya'?'var
 
 /* ---------- estado ---------- */
 const DEFAULTS={
-  totalDaysPerYear:30, contractStart:'2026-07-01', hoursPerDay:6,
+  totalDaysPerYear:30, contractStart:'2026-07-01', hoursPerDay:6, carryUntil:'04-30',
   weeklyFreePattern:[false,true,false,false,false,false,false],
   dayOverrides:{}, vacations:[], festivos:{added:[],removed:[]}, updatedAt:0
 };
@@ -407,6 +408,7 @@ function migrate(){
   for(const k in DEFAULTS) if(state[k]===undefined) state[k]=structuredClone(DEFAULTS[k]);
   if(!state.festivos)state.festivos={added:[],removed:[]};
   if(!state.dayOverrides)state.dayOverrides={};
+  if(!state.carryUntil)state.carryUntil='04-30';
   if(!Array.isArray(state.weeklyFreePattern)||state.weeklyFreePattern.length!==7)state.weeklyFreePattern=structuredClone(DEFAULTS.weeklyFreePattern);
 }
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(state))}
@@ -495,13 +497,22 @@ function entitlement(year){
   if(year>sy)return r1(state.totalDaysPerYear);
   return r1(state.totalDaysPerYear*(12-s.getMonth())/12);
 }
+// Días NATURALES de vacaciones que caen en un año (como los cuenta la empresa).
 function usedInYear(year,onlyFuture){
   let c=0,t=today0();
   state.vacations.forEach(v=>{for(let d=pd(v.from);d<=pd(v.to);d.setDate(d.getDate()+1)){
-    if(d.getFullYear()!==year)continue;if(onlyFuture&&d<t)continue;if(isWorkday(d,toISO(d)))c++;}});
+    if(d.getFullYear()!==year)continue;if(onlyFuture&&d<t)continue;c++;}});
   return c;
 }
-function vacCostText(from,to){let work=0,nat=daysBetween(from,to);for(let d=pd(from);d<=pd(to);d.setDate(d.getDate()+1))if(isWorkday(d,toISO(d)))work++;return {work,nat};}
+function vacCostText(from,to){const nat=daysBetween(from,to);return {work:nat,nat};}
+// Días arrastrados del año anterior (no disfrutados).
+function carryIn(year){return Math.max(0,r1(entitlement(year-1)-usedInYear(year-1,false)));}
+// Arrastre todavía válido en 'year' a fecha de hoy (caduca el state.carryUntil de ese año).
+function validCarry(year){
+  const c=carryIn(year);if(c<=0)return 0;
+  const cutoff=pd(year+'-'+(state.carryUntil||'04-30'));
+  return today0()<=cutoff?c:0;
+}
 function workedDays(a,b){let c=0;const vac=vacationDates();for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){const iso=toISO(d);if(isWorkday(d,iso)&&!vac.has(iso))c++;}return c;}
 function weekBounds(t){const d=new Date(t);const wd=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-wd);mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);return [mon,sun];}
 function monthBounds(t){return [new Date(t.getFullYear(),t.getMonth(),1),new Date(t.getFullYear(),t.getMonth()+1,0)];}
@@ -509,12 +520,13 @@ function monthBounds(t){return [new Date(t.getFullYear(),t.getMonth(),1),new Dat
 /* ---------- render ---------- */
 function renderSummary(){
   const year=today0().getFullYear();
-  const ent=entitlement(year),used=usedInYear(year,false),avail=r1(ent-used);
+  const ent=entitlement(year),used=usedInYear(year,false),carry=validCarry(year),avail=r1(ent+carry-used);
   const bl=$('bigLeft');bl.textContent=avail;bl.classList.toggle('neg',avail<0);
-  $('bigSub').textContent='de '+ent+' este año';
+  $('bigSub').textContent='de '+r1(ent+carry)+' este año';
   $('cEnt').textContent=ent;
   $('cUsed').textContent=used;
-  $('cFuture').textContent=usedInYear(year,true);
+  if(carry>0){$('ckFuture').textContent='Arrastre '+(year-1)+' (caduca '+(state.carryUntil||'04-30').split('-').reverse().join('/')+')';$('cFuture').textContent='+'+carry;}
+  else{$('ckFuture').textContent='Por disfrutar';$('cFuture').textContent=usedInYear(year,true);}
   $('cNext').textContent=entitlement(year+1);
   $('contractDisp').textContent='Contrato · desde '+fmtDMY(state.contractStart);
   const t=today0(),h=state.hoursPerDay||0;
@@ -584,7 +596,7 @@ function pickRange(iso){
 function addVacationRange(from,to){
   state.vacations.push({id:Date.now(),from,to,note:''});touch();renderAll();
   const c=vacCostText(from,to);
-  $('addNote').innerHTML=`<b>${c.work} día${c.work!==1?'s':''} laborable${c.work!==1?'s':''}</b> marcados (${fmtShort(from)} → ${fmtShort(to)}).`;
+  $('addNote').innerHTML=`<b>${c.nat} día${c.nat!==1?'s':''}</b> de vacaciones marcados (${fmtShort(from)} → ${fmtShort(to)}).`;
 }
 
 /* ---------- sugeridor de puentes ---------- */
@@ -649,14 +661,15 @@ function renderList(){
   if(filterYear!=='all')years=years.filter(y=>y===filterYear);
   let html='';
   years.forEach(y=>{
-    const ent=entitlement(y),used=usedInYear(y,false),avail=r1(ent-used);
-    html+=`<div class="resgrp">${y} · ${ent} asignados · ${used} cogidos · ${avail} disponibles</div>`;
+    const ent=entitlement(y),carry=carryIn(y),used=usedInYear(y,false),avail=r1(ent+carry-used);
+    const carryTxt=carry>0?` (+${carry} arrastre)`:'';
+    html+=`<div class="resgrp">${y} · ${ent}${carryTxt} asignados · ${used} cogidos · ${avail} disponibles</div>`;
     const vacs=state.vacations.filter(v=>pd(v.from).getFullYear()===y).sort((a,b)=>a.from<b.from?1:-1);
     if(!vacs.length)html+=`<div class="vrow muted"><span class="vn">Sin vacaciones registradas</span></div>`;
     vacs.forEach(v=>{
       const c=vacCostText(v.from,v.to);
       const range=v.from===v.to?fmtShort(v.from):`${fmtShort(v.from)} → ${fmtShort(v.to)}`;
-      html+=`<div class="vrow"><span class="vd">${range}</span><span class="vn">${v.note?escapeHtml(v.note):'Vacaciones'}</span><span class="vc">${c.work} lab</span><button class="vx" data-id="${v.id}" aria-label="Eliminar">×</button></div>`;
+      html+=`<div class="vrow"><span class="vd">${range}</span><span class="vn">${v.note?escapeHtml(v.note):'Vacaciones'}</span><span class="vc">${c.nat} día${c.nat!==1?'s':''}</span><button class="vx" data-id="${v.id}" aria-label="Eliminar">×</button></div>`;
     });
   });
   list.innerHTML=html;
@@ -704,6 +717,7 @@ function renderAll(){
   invalidate();
   renderSummary();renderCalendar();renderYearTabs();renderList();renderFestivos();renderPattern();
   $('cfgTotal').value=state.totalDaysPerYear;$('cfgStart').value=state.contractStart;$('cfgHours').value=state.hoursPerDay;
+  $('cfgCarry').value=(state.carryUntil||'04-30').split('-').reverse().join('/');
 }
 
 /* ---------- popover de día ---------- */
@@ -761,7 +775,7 @@ function addVacation(){
   if(pd(to)<pd(from)){flash($('addBtn'),'Rango inválido');return}
   state.vacations.push({id:Date.now(),from,to,note});touch();renderAll();
   const c=vacCostText(from,to);
-  $('addNote').innerHTML=`<b>${c.work} día${c.work!==1?'s':''} laborable${c.work!==1?'s':''}</b> descontados (de ${c.nat} naturales).`;
+  $('addNote').innerHTML=`<b>${c.nat} día${c.nat!==1?'s':''} naturales</b> descontados.`;
   $('dateFrom').value=$('dateTo').value=$('note').value='';updateAddBtn();
 }
 function removeVacation(id){state.vacations=state.vacations.filter(v=>v.id!==id);touch();renderAll()}
@@ -780,7 +794,12 @@ function addFestivo(){
   $('fAddDate').value=$('fAddName').value='';
 }
 function resetFestivos(){if(!confirm('¿Restaurar los festivos por defecto? Se pierden tus añadidos y quitados.'))return;state.festivos={added:[],removed:[]};touch();renderAll();}
-function saveCfg(){state.totalDaysPerYear=parseFloat($('cfgTotal').value)||30;state.contractStart=$('cfgStart').value||'2026-07-01';touch();renderAll();const b=$('saveCfg'),t=b.textContent;b.textContent='Guardado';setTimeout(()=>b.textContent=t,1200)}
+function saveCfg(){
+  state.totalDaysPerYear=parseFloat($('cfgTotal').value)||30;
+  state.contractStart=$('cfgStart').value||'2026-07-01';
+  const cv=($('cfgCarry').value||'').trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(cv)state.carryUntil=String(cv[2]).padStart(2,'0')+'-'+String(cv[1]).padStart(2,'0');
+  touch();renderAll();const b=$('saveCfg'),t=b.textContent;b.textContent='Guardado';setTimeout(()=>b.textContent=t,1200)}
 function saveHours(){const h=parseFloat($('cfgHours').value);if(!isNaN(h)){state.hoursPerDay=h;touch();renderSummary();}}
 function resetAll(){if(!confirm('¿Borrar todos los datos de este dispositivo?'))return;localStorage.removeItem(KEY);state=structuredClone(DEFAULTS);filterYear='all';festYear=null;calYear=null;touch();renderAll()}
 function flash(btn,msg){const t=btn.textContent;btn.textContent=msg;setTimeout(()=>btn.textContent=t,1100)}
