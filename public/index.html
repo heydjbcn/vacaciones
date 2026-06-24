@@ -229,7 +229,7 @@
   <header class="top">
     <div class="brand">
       <div class="mark"><img src="icons/imfalu-logo.png" alt="IMFALU"></div>
-      <div><div class="t">Vacaciones</div><div class="s" id="contractDisp">—</div></div>
+      <div><div class="t">Vacaciones</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex:none">
       <button class="sync" id="syncChip" data-s="local"><span class="ds"></span><span id="syncTxt">local</span></button>
@@ -570,7 +570,6 @@ function renderSummary(){
   if(carry>0){$('ckFuture').textContent='Arrastre '+(year-1)+' (caduca '+(state.carryUntil||'04-30').split('-').reverse().join('/')+')';$('cFuture').textContent='+'+carry;}
   else{$('ckFuture').textContent='Por disfrutar';$('cFuture').textContent=usedInYear(year,true);}
   $('cNext').textContent=entitlement(year+1);
-  $('contractDisp').textContent='Contrato · desde '+fmtDMY(state.contractStart);
 }
 
 function cellVisual(tp,scope,isToday){
