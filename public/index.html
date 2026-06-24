@@ -269,6 +269,7 @@
     <span class="lg"><span class="sw hoy"></span>Hoy</span>
   </div>
   <div class="calgrid" id="calGrid"></div>
+  <div style="display:flex;justify-content:center;margin-top:14px"><button class="btn-soft" id="calMoreBtn">Ver más</button></div>
 
   <div class="card pad" id="puentesCard" style="margin-top:20px;display:none">
     <h3 class="sec" style="margin-bottom:4px">Puentes sugeridos</h3>
@@ -392,7 +393,7 @@ const DEFAULTS={
   dayOverrides:{}, vacations:[], festivos:{added:[],removed:[]}, updatedAt:0
 };
 let state=structuredClone(DEFAULTS);
-let filterYear='all', festYear=null, calYear=null;
+let filterYear='all', festYear=null, calYear=null, calExtra=false;
 let rangeMode=false, rangeStart=null;
 const $=id=>document.getElementById(id);
 const KEY='vacacionesState';
@@ -534,24 +535,28 @@ function renderCalendar(){
   if(!years.includes(calYear))calYear=years[0];
   const tabs=$('calTabs');
   tabs.innerHTML=years.map(y=>`<button data-y="${y}" class="${calYear==y?'on':''}">${y}</button>`).join('');
-  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{calYear=Number(b.dataset.y);renderCalendar();});
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{calYear=Number(b.dataset.y);calExtra=false;renderCalendar();});
   const vac=vacationDates(),fmap=festMap(),tIso=toISO(today0());
   let html='';
-  for(let m=0;m<12;m++){
-    const first=new Date(calYear,m,1),lead=(first.getDay()+6)%7,dim=new Date(calYear,m+1,0).getDate();
-    html+=`<div class="month"><h3>${MESL[m]}<small>${MES[m]}</small></h3><div class="wd"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="days">`;
-    for(let i=0;i<lead;i++)html+='<div class="day blank"></div>';
-    for(let day=1;day<=dim;day++){
-      const d=new Date(calYear,m,day),iso=toISO(d),f=fmap.get(iso),tp=dayType(d,iso,vac);
-      const isToday=iso===tIso,vis=cellVisual(tp,f&&f.scope,isToday);
-      if(rangeMode&&iso===rangeStart)vis.bs=(vis.bs?vis.bs+',':'')+'inset 0 0 0 2px var(--vac)';
-      html+=`<button class="day" data-iso="${iso}" style="background:${vis.bg};color:${vis.col};font-weight:${vis.weight};box-shadow:${vis.bs||'none'};z-index:${isToday?2:1}"${f?` title="${escapeHtml(f.name)}"`:''}>${vis.marks}${day}</button>`;
-    }
-    html+='</div></div>';
-  }
+  for(let m=0;m<12;m++)html+=monthHTML(calYear,m,vac,fmap,tIso);
+  if(calExtra)for(let m=0;m<3;m++)html+=monthHTML(calYear+1,m,vac,fmap,tIso);
   $('calGrid').innerHTML=html;
   $('calGrid').querySelectorAll('.day').forEach(c=>c.onclick=()=>{rangeMode?pickRange(c.dataset.iso):openDay(c.dataset.iso);});
+  const mb=$('calMoreBtn');
+  mb.textContent=calExtra?'Ver menos':('Ver más (ene–mar '+(calYear+1)+')');
   renderPuentes(calYear);
+}
+function monthHTML(year,m,vac,fmap,tIso){
+  const first=new Date(year,m,1),lead=(first.getDay()+6)%7,dim=new Date(year,m+1,0).getDate();
+  let html=`<div class="month"><h3>${MESL[m]}<small>${year}</small></h3><div class="wd"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="days">`;
+  for(let i=0;i<lead;i++)html+='<div class="day blank"></div>';
+  for(let day=1;day<=dim;day++){
+    const d=new Date(year,m,day),iso=toISO(d),f=fmap.get(iso),tp=dayType(d,iso,vac);
+    const isToday=iso===tIso,vis=cellVisual(tp,f&&f.scope,isToday);
+    if(rangeMode&&iso===rangeStart)vis.bs=(vis.bs?vis.bs+',':'')+'inset 0 0 0 2px var(--vac)';
+    html+=`<button class="day" data-iso="${iso}" style="background:${vis.bg};color:${vis.col};font-weight:${vis.weight};box-shadow:${vis.bs||'none'};z-index:${isToday?2:1}"${f?` title="${escapeHtml(f.name)}"`:''}>${vis.marks}${day}</button>`;
+  }
+  return html+'</div></div>';
 }
 
 /* ---------- marcar rango en el calendario ---------- */
@@ -867,6 +872,7 @@ $('fResetBtn').onclick=resetFestivos;
 $('resetBtn').onclick=resetAll;
 $('syncChip').onclick=()=>pullState();
 $('rangeBtn').onclick=toggleRange;
+$('calMoreBtn').onclick=()=>{calExtra=!calExtra;renderCalendar();};
 $('dayModal').onclick=e=>{if(e.target===$('dayModal'))closeDay();};
 window.addEventListener('online',pullState);
 
