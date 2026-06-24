@@ -348,6 +348,11 @@
     </div>
   </div>
 
+  <div class="card pad" id="historialCard" style="margin-top:20px;display:none">
+    <div class="fhdr"><h3 class="sec">Histórico de jornada</h3><span class="klabel" id="histSaldo"></span></div>
+    <div id="histList"></div>
+  </div>
+
   <details class="set card">
     <summary>Ajustes</summary>
     <div class="setgrid">
@@ -545,7 +550,7 @@ function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>
 // Calendario laboral oficial traído de IMFALU (autoridad). Vacío hasta cargarlo.
 let imfaluHolidays=[];
 // Días con fichaje real validado en IMFALU (para marcarlos en el calendario).
-let fichajeSet=new Set();
+let fichajeSet=new Set(), fichajeMap=new Map();
 function festivos(){
   const removed=new Set(state.festivos.removed||[]);
   const map=new Map();
@@ -679,7 +684,8 @@ function pickRange(iso){
 function addVacationRange(from,to){
   state.vacations.push({id:Date.now(),from,to,note:''});touch();renderAll();
   const c=vacCostText(from,to);
-  $('addNote').innerHTML=`<b>${c.nat} día${c.nat!==1?'s':''}</b> de vacaciones marcados (${fmtShort(from)} → ${fmtShort(to)}).`;
+  const cfR=fichajeConflict(from,to);
+  $('addNote').innerHTML=`<b>${c.nat} día${c.nat!==1?'s':''}</b> de vacaciones marcados (${fmtShort(from)} → ${fmtShort(to)}).`+(cfR?` <b style="color:var(--neg)">Ojo: ${cfR} con fichaje real en IMFALU.</b>`:'');
 }
 
 /* ---------- sugeridor de puentes ---------- */
@@ -798,7 +804,7 @@ function updateAddBtn(){
 
 function renderAll(){
   invalidate();
-  renderSummary();renderCalendar();renderYearTabs();renderList();renderFestivos();renderPattern();
+  renderSummary();renderCalendar();renderYearTabs();renderList();renderFestivos();renderPattern();renderHistorial();
   $('cfgTotal').value=state.totalDaysPerYear;$('cfgStart').value=state.contractStart;$('cfgWeekly').value=state.weeklyHours;
   $('cfgCarry').value=(state.carryUntil||'04-30').split('-').reverse().join('/');
 }
@@ -861,12 +867,14 @@ function closeDay(){$('dayModal').classList.remove('on');dmISO=null;}
 function dayAction(a){
   const iso=dmISO;if(!iso){closeDay();return;}
   if(a==='close'){closeDay();return;}
-  if(a==='vac')state.vacations.push({id:Date.now(),from:iso,to:iso,note:''});
+  let warn='';
+  if(a==='vac'){state.vacations.push({id:Date.now(),from:iso,to:iso,note:''});if(fichajeSet.has(iso))warn=' <b style="color:var(--neg)">Ojo: ese día consta fichaje real en IMFALU.</b>';}
   else if(a==='unvac')removeVacationDay(iso);
   else if(a==='free')state.dayOverrides[iso]='free';
   else if(a==='work')state.dayOverrides[iso]='work';
   else if(a==='clearov')delete state.dayOverrides[iso];
   touch();renderAll();closeDay();
+  if(warn)$('addNote').innerHTML='Día marcado.'+warn;
 }
 function removeVacationDay(iso){
   const out=[];
@@ -885,7 +893,8 @@ function addVacation(){
   if(pd(to)<pd(from)){flash($('addBtn'),'Rango inválido');return}
   state.vacations.push({id:Date.now(),from,to,note});touch();renderAll();
   const c=vacCostText(from,to);
-  $('addNote').innerHTML=`<b>${c.nat} día${c.nat!==1?'s':''} naturales</b> descontados.`;
+  const cfA=fichajeConflict(from,to);
+  $('addNote').innerHTML=`<b>${c.nat} día${c.nat!==1?'s':''} naturales</b> descontados.`+(cfA?` <b style="color:var(--neg)">Ojo: ${cfA} con fichaje real en IMFALU.</b>`:'');
   $('dateFrom').value=$('dateTo').value=$('note').value='';updateAddBtn();
 }
 function removeVacation(id){state.vacations=state.vacations.filter(v=>v.id!==id);touch();renderAll()}
@@ -1000,8 +1009,31 @@ async function loadFichajeDays(){
     if(!r.ok)return;const data=await r.json();
     if(!data||!data.enabled||!Array.isArray(data.days))return;
     fichajeSet=new Set(data.days.map(d=>d.date));
-    renderCalendar();
+    fichajeMap=new Map(data.days.map(d=>[d.date,d.netMinutes||0]));
+    renderCalendar();renderHistorial();
   }catch(e){}
+}
+function balPill(min){const h=r1(min/60),pos=h>=0;return `<b style="color:var(--${pos?'pos':'neg'})">${pos?'+':'−'}${Math.abs(h)} h</b>`;}
+function fichajeConflict(from,to){let c=0;for(let d=pd(from);d<=pd(to);d.setDate(d.getDate()+1))if(fichajeSet.has(toISO(d)))c++;return c;}
+function renderHistorial(){
+  const card=$('historialCard');if(!card)return;
+  if(!fichajeMap.size){card.style.display='none';return;}
+  card.style.display='';
+  const weeklyMin=(state.weeklyHours||30)*60,tIso=toISO(today0());
+  // saldo acumulado: semanas COMPLETAS (domingo pasado) con datos, sumando real-objetivo
+  const weeks=new Map();
+  fichajeMap.forEach((min,iso)=>{const [mon,sun]=weekBounds(pd(iso));const k=toISO(mon);const e=weeks.get(k)||{net:0,sun};e.net+=min;e.sun=sun;weeks.set(k,e);});
+  let saldo=0;weeks.forEach(w=>{if(toISO(w.sun)<tIso)saldo+=(w.net-weeklyMin);});
+  $('histSaldo').innerHTML='Saldo acumulado · '+balPill(saldo);
+  // por mes
+  const months=new Map();
+  fichajeMap.forEach((min,iso)=>{const k=iso.slice(0,7);months.set(k,(months.get(k)||0)+min);});
+  const keys=[...months.keys()].sort().reverse();
+  $('histList').innerHTML='<div class="reslist">'+keys.map(k=>{
+    const y=+k.slice(0,4),m=+k.slice(5,7),net=months.get(k);
+    const target=weeklyMin*mondaysInMonth(new Date(y,m-1,1)),balH=r1((net-target)/60),pos=balH>=0;
+    return `<div class="vrow"><span class="vd" style="width:120px">${MESL[m-1]} ${y}</span><span class="vn">${fmtH(net)} de ${r1(target/60)} h</span><span class="vc" style="background:color-mix(in srgb,var(--${pos?'pos':'neg'}) 13%,transparent);color:var(--${pos?'pos':'neg'})">${pos?'+':'−'}${Math.abs(balH)} h</span></div>`;
+  }).join('')+'</div>';
 }
 
 /* ---------- arranque ---------- */

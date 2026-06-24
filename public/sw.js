@@ -1,5 +1,5 @@
 // Service worker: app-shell offline. Los datos (/api/state) van siempre por red.
-const CACHE = 'vacaciones-v37';
+const CACHE = 'vacaciones-v38';
 const SHELL = [
   '/',
   '/index.html',
