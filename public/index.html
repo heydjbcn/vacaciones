@@ -104,6 +104,11 @@
   .sw.trabajo{background:var(--surface);border:1px solid var(--border)}
   .sw.hoy{background:var(--surface);box-shadow:0 0 0 2px var(--today)}
 
+  #calMoreBtn{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--muted);
+    background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:9px 18px;cursor:pointer;transition:.15s;letter-spacing:.01em}
+  #calMoreBtn:hover{color:var(--ink);border-color:var(--border2);box-shadow:0 2px 8px -3px rgba(0,0,0,.12)}
+  #calMoreBtn::after{content:'';width:7px;height:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(45deg) translate(-1px,-1px);transition:transform .2s}
+  #calMoreBtn.open::after{transform:rotate(-135deg) translate(-1px,-1px)}
   .calgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
   @media(max-width:900px){.calgrid{grid-template-columns:repeat(3,1fr)}}
   @media(max-width:640px){.calgrid{grid-template-columns:repeat(2,1fr)}}
@@ -269,7 +274,7 @@
     <span class="lg"><span class="sw hoy"></span>Hoy</span>
   </div>
   <div class="calgrid" id="calGrid"></div>
-  <div style="display:flex;justify-content:center;margin-top:14px"><button class="btn-soft" id="calMoreBtn">Ver más</button></div>
+  <div style="display:flex;justify-content:center;margin-top:18px"><button id="calMoreBtn">Ver más</button></div>
 
   <div class="card pad" id="puentesCard" style="margin-top:20px;display:none">
     <h3 class="sec" style="margin-bottom:4px">Puentes sugeridos</h3>
@@ -543,7 +548,8 @@ function renderCalendar(){
   $('calGrid').innerHTML=html;
   $('calGrid').querySelectorAll('.day').forEach(c=>c.onclick=()=>{rangeMode?pickRange(c.dataset.iso):openDay(c.dataset.iso);});
   const mb=$('calMoreBtn');
-  mb.textContent=calExtra?'Ver menos':('Ver más (ene–mar '+(calYear+1)+')');
+  mb.textContent=calExtra?'Ver menos':'Ver más';
+  mb.classList.toggle('open',calExtra);
   renderPuentes(calYear);
 }
 function monthHTML(year,m,vac,fmap,tIso){
