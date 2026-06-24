@@ -153,6 +153,33 @@ app.get('/api/fichaje', async (req, res) => {
   }
 });
 
+// Calendario laboral de empresa (festivos) desde IMFALU.
+const IMFALU_HOLIDAYS_URL = process.env.IMFALU_HOLIDAYS_URL || '';
+let holidaysCache = { key: '', at: 0, data: null };
+app.get('/api/holidays', async (req, res) => {
+  if (!authed(req)) return res.status(401).json({ error: 'unauthorized' });
+  if (!IMFALU_HOLIDAYS_URL || !IMFALU_SECRET) return res.json({ enabled: false });
+  const from = String(req.query.from || '').slice(0, 10);
+  const to = String(req.query.to || '').slice(0, 10);
+  const qs = new URLSearchParams();
+  if (from) qs.set('from', from);
+  if (to) qs.set('to', to);
+  const key = qs.toString();
+  if (holidaysCache.key === key && Date.now() - holidaysCache.at < 60 * 60000) {
+    return res.json(holidaysCache.data);
+  }
+  try {
+    const r = await fetch(IMFALU_HOLIDAYS_URL + (key ? '?' + key : ''), { headers: { 'x-integration-secret': IMFALU_SECRET } });
+    if (!r.ok) return res.status(502).json({ enabled: true, error: 'imfalu ' + r.status });
+    const data = await r.json();
+    const out = Object.assign({ enabled: true }, data);
+    holidaysCache = { key, at: Date.now(), data: out };
+    res.json(out);
+  } catch (e) {
+    res.status(502).json({ enabled: true, error: 'fetch failed' });
+  }
+});
+
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 app.use(express.static(path.join(__dirname, 'public'), {
