@@ -544,7 +544,7 @@ function renderCalendar(){
   const vac=vacationDates(),fmap=festMap(),tIso=toISO(today0());
   let html='';
   for(let m=0;m<12;m++)html+=monthHTML(calYear,m,vac,fmap,tIso);
-  if(calExtra)for(let m=0;m<3;m++)html+=monthHTML(calYear+1,m,vac,fmap,tIso);
+  if(calExtra)for(let m=0;m<4;m++)html+=monthHTML(calYear+1,m,vac,fmap,tIso);
   $('calGrid').innerHTML=html;
   $('calGrid').querySelectorAll('.day').forEach(c=>c.onclick=()=>{rangeMode?pickRange(c.dataset.iso):openDay(c.dataset.iso);});
   const mb=$('calMoreBtn');
