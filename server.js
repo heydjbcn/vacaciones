@@ -125,6 +125,34 @@ app.put('/api/state', (req, res) => {
   res.json({ ok: true, updatedAt: body.updatedAt || null });
 });
 
+/* ---------- fichaje IMFALU (proxy solo lectura, server-to-server) ---------- */
+const IMFALU_URL = process.env.IMFALU_JORNADA_URL || '';
+const IMFALU_SECRET = process.env.INTEGRATION_SECRET || '';
+let fichajeCache = { key: '', at: 0, data: null };
+app.get('/api/fichaje', async (req, res) => {
+  if (!authed(req)) return res.status(401).json({ error: 'unauthorized' });
+  if (!IMFALU_URL || !IMFALU_SECRET) return res.json({ enabled: false });
+  const from = String(req.query.from || '').slice(0, 10);
+  const to = String(req.query.to || '').slice(0, 10);
+  const qs = new URLSearchParams();
+  if (from) qs.set('from', from);
+  if (to) qs.set('to', to);
+  const key = qs.toString();
+  if (fichajeCache.key === key && Date.now() - fichajeCache.at < 5 * 60000) {
+    return res.json(fichajeCache.data);
+  }
+  try {
+    const r = await fetch(IMFALU_URL + (key ? '?' + key : ''), { headers: { 'x-integration-secret': IMFALU_SECRET } });
+    if (!r.ok) return res.status(502).json({ enabled: true, error: 'imfalu ' + r.status });
+    const data = await r.json();
+    const out = Object.assign({ enabled: true }, data);
+    fichajeCache = { key, at: Date.now(), data: out };
+    res.json(out);
+  } catch (e) {
+    res.status(502).json({ enabled: true, error: 'fetch failed' });
+  }
+});
+
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 app.use(express.static(path.join(__dirname, 'public'), {
