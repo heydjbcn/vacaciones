@@ -229,6 +229,7 @@
   .fichbox .fbi .v{font-family:var(--mono);font-weight:600;font-size:17px;color:var(--ink)}
   .fichbox .fbnone{font-size:13px;color:var(--muted)}
   .fichbox .badge{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--pos) 15%,transparent);color:var(--pos);font-weight:600}
+  .pasthint{font-size:12px;color:var(--faint);text-align:center;padding:2px 0 2px;font-family:var(--mono)}
   .sheet .acts{display:flex;flex-direction:column;gap:8px;margin-top:18px}
   .sheet .acts .row2{display:flex;gap:8px}
   .sheet .acts .row2>*{flex:1}
@@ -661,6 +662,7 @@ function updateRangeUI(){
 }
 function toggleRange(){rangeMode=!rangeMode;rangeStart=null;updateRangeUI();renderCalendar();}
 function pickRange(iso){
+  if(iso<toISO(today0())){const h=$('rangeHint');h.style.display='';h.innerHTML='Solo puedes marcar <b>días de hoy en adelante</b>.';return;}
   if(!rangeStart){rangeStart=iso;updateRangeUI();renderCalendar();return;}
   const from=iso<rangeStart?iso:rangeStart,to=iso<rangeStart?rangeStart:iso;
   rangeMode=false;rangeStart=null;updateRangeUI();
@@ -829,15 +831,20 @@ function openDay(iso){
   const tag=$('dmTag');tag.textContent=t[0];tag.style.background=t[1];tag.style.color=t[2];
   $('dmFest').innerHTML=f?`<div class="festbox"><span class="fdot" style="width:8px;height:8px;border-radius:50%;flex:none;background:${scopeVar(f.scope)}"></span>${escapeHtml(f.name)} · ${SCOPE_LABEL[f.scope]}</div>`:'';
   renderDmFichaje(iso);
-  const acts=[];
-  if(tp==='vacaciones')acts.push(`<button class="bvac" data-a="unvac">Quitar de vacaciones</button>`);
-  else acts.push(`<button class="bvac" data-a="vac">Marcar vacaciones</button>`);
-  const second=[];
-  if(isPersonalFree(d,iso))second.push(`<button class="btn-soft" data-a="work">Trabajar este día</button>`);
-  else second.push(`<button class="btn-soft" data-a="free">Marcar día libre</button>`);
-  if(ov(iso))second.push(`<button class="btn-quiet" data-a="clearov">Volver al patrón</button>`);
-  second.push(`<button class="btn-quiet" data-a="close">Cerrar</button>`);
-  acts.push(`<div class="row2">${second.join('')}</div>`);
+  const acts=[],isPast=iso<toISO(today0());
+  if(isPast){
+    acts.push(`<div class="pasthint">Día pasado · solo lectura</div>`);
+    acts.push(`<div class="row2"><button class="btn-quiet" data-a="close">Cerrar</button></div>`);
+  }else{
+    if(tp==='vacaciones')acts.push(`<button class="bvac" data-a="unvac">Quitar de vacaciones</button>`);
+    else acts.push(`<button class="bvac" data-a="vac">Marcar vacaciones</button>`);
+    const second=[];
+    if(isPersonalFree(d,iso))second.push(`<button class="btn-soft" data-a="work">Trabajar este día</button>`);
+    else second.push(`<button class="btn-soft" data-a="free">Marcar día libre</button>`);
+    if(ov(iso))second.push(`<button class="btn-quiet" data-a="clearov">Volver al patrón</button>`);
+    second.push(`<button class="btn-quiet" data-a="close">Cerrar</button>`);
+    acts.push(`<div class="row2">${second.join('')}</div>`);
+  }
   $('dmActs').innerHTML=acts.join('');
   $('dmActs').querySelectorAll('button').forEach(b=>b.onclick=()=>dayAction(b.dataset.a));
   $('dayModal').classList.add('on');
