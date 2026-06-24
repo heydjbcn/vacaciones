@@ -240,6 +240,7 @@
   .fichbox .fbnone{font-size:13px;color:var(--muted)}
   .fichbox .badge{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--pos) 15%,transparent);color:var(--pos);font-weight:600}
   .pasthint{font-size:12px;color:var(--faint);text-align:center;padding:2px 0 2px;font-family:var(--mono)}
+  .dmwarn{font-size:12.5px;color:var(--neg);background:color-mix(in srgb,var(--neg) 10%,transparent);border:1px solid color-mix(in srgb,var(--neg) 22%,transparent);border-radius:calc(var(--r)*.5);padding:9px 12px}
   .sheet .acts{display:flex;flex-direction:column;gap:8px;margin-top:18px}
   .sheet .acts .row2{display:flex;gap:8px}
   .sheet .acts .row2>*{flex:1}
@@ -594,11 +595,10 @@ function entitlement(year){
   if(year>sy)return r1(state.totalDaysPerYear);
   return r1(state.totalDaysPerYear*(12-s.getMonth())/12);
 }
-// Días NATURALES de vacaciones que caen en un año (como los cuenta la empresa).
+// Días NATURALES de vacaciones que caen en un año (deduplicados: periodos solapados NO cuentan doble).
 function usedInYear(year,onlyFuture){
   let c=0,t=today0();
-  state.vacations.forEach(v=>{for(let d=pd(v.from);d<=pd(v.to);d.setDate(d.getDate()+1)){
-    if(d.getFullYear()!==year)continue;if(onlyFuture&&d<t)continue;c++;}});
+  vacationDates().forEach(iso=>{const d=pd(iso);if(d.getFullYear()!==year)return;if(onlyFuture&&d<t)return;c++;});
   return c;
 }
 function vacCostText(from,to){const nat=daysBetween(from,to);return {work:nat,nat};}
@@ -610,7 +610,6 @@ function validCarry(year){
   const cutoff=pd(year+'-'+(state.carryUntil||'04-30'));
   return today0()<=cutoff?c:0;
 }
-function workedDays(a,b){let c=0;const vac=vacationDates();for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){const iso=toISO(d);if(isWorkday(d,iso)&&!vac.has(iso))c++;}return c;}
 function weekBounds(t){const d=new Date(t);const wd=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-wd);mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);return [mon,sun];}
 function monthBounds(t){return [new Date(t.getFullYear(),t.getMonth(),1),new Date(t.getFullYear(),t.getMonth()+1,0)];}
 
@@ -855,11 +854,14 @@ function openDay(iso){
     acts.push(`<div class="pasthint">Día pasado · solo lectura</div>`);
     acts.push(`<div class="row2"><button class="btn-quiet" data-a="close">Cerrar</button></div>`);
   }else{
+    const noWork={festivo:'Es festivo',finde:'Es fin de semana',libre:'Es tu día libre'}[tp];
+    if(noWork)acts.push(`<div class="dmwarn">${noWork} · no se trabaja, no necesitas gastar vacaciones.</div>`);
     if(tp==='vacaciones')acts.push(`<button class="bvac" data-a="unvac">Quitar de vacaciones</button>`);
     else acts.push(`<button class="bvac" data-a="vac">Marcar vacaciones</button>`);
     const second=[];
-    if(isPersonalFree(d,iso))second.push(`<button class="btn-soft" data-a="work">Trabajar este día</button>`);
-    else second.push(`<button class="btn-soft" data-a="free">Marcar día libre</button>`);
+    if(tp==='trabajo')second.push(`<button class="btn-soft" data-a="free">Marcar día libre</button>`);
+    else if(tp==='libre')second.push(`<button class="btn-soft" data-a="work">Trabajar este día</button>`);
+    else if(tp==='festivo'||tp==='finde')second.push(`<button class="btn-soft" data-a="work">Trabajé este día</button>`);
     if(ov(iso))second.push(`<button class="btn-quiet" data-a="clearov">Volver al patrón</button>`);
     second.push(`<button class="btn-quiet" data-a="close">Cerrar</button>`);
     acts.push(`<div class="row2">${second.join('')}</div>`);
@@ -896,6 +898,7 @@ function addVacation(){
   const from=$('dateFrom').value,to=$('dateTo').value,note=$('note').value.trim();
   if(!from||!to){flash($('addBtn'),'Elige fechas');return}
   if(pd(to)<pd(from)){flash($('addBtn'),'Rango inválido');return}
+  if(from<toISO(today0())){flash($('addBtn'),'Solo desde hoy');$('addNote').innerHTML='<b style="color:var(--neg)">No puedes pedir vacaciones en días ya pasados.</b>';return}
   state.vacations.push({id:Date.now(),from,to,note});touch();renderAll();
   const c=vacCostText(from,to);
   const cfA=fichajeConflict(from,to);
