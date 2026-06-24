@@ -86,19 +86,23 @@
   .hero .cells .cell{background:var(--metricCellBg)}
   .hero .cell .cv{color:var(--heroMetricNum)}
   .hero .cell .ck{color:var(--heroMetricLab)}
-  .herorow{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
+  .herorow{display:flex;align-items:flex-end;gap:30px;flex-wrap:wrap}
   .hbal{flex:0 0 auto}
   .hero .bigrow{margin:6px 0 0}
-  .hero .big{font-size:60px}
+  .hero .big{font-size:64px}
+  .hero .bigsub{font-size:14px}
   .metrics4{flex:1;min-width:260px;grid-template-columns:repeat(4,1fr)}
-  .hjor{display:flex;align-items:center;gap:8px 22px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--heroDiv)}
-  .hjor .klabel{color:var(--heroLabel)}
-  .hjor .hstat{display:flex;align-items:baseline;gap:7px}
-  .hjor .hstat b{font-family:var(--mono);font-size:18px;color:var(--heroNum);font-weight:600}
-  .hjor .hstat small{font-size:11.5px;color:var(--heroMetricLab)}
-  .hjor .hstat small b{color:var(--heroNum)}
+  .hero .cells .cell{padding:15px 17px;gap:4px}
+  .hero .cell .cv{font-size:28px}
+  .hero .cell .ck{font-size:12.5px}
+  .hjor{display:flex;align-items:center;gap:10px 26px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--heroDiv)}
+  .hjor>.klabel{color:var(--heroLabel);font-size:12px}
+  .hjor .hstat{display:flex;align-items:baseline;gap:8px}
+  .hjor .hstat b{font-family:var(--mono);font-size:22px;color:var(--heroNum);font-weight:700}
+  .hjor .hstat small{font-size:12.5px;color:var(--heroMetricLab)}
+  .hjor .bal.pos{color:#7fe3a6;font-weight:700} .hjor .bal.neg{color:#ffc09f;font-weight:700}
   .hreg{margin-left:auto}
-  .hreg>summary{cursor:pointer;list-style:none;font-size:11.5px;color:var(--heroLabel);font-family:var(--mono)}
+  .hreg>summary{cursor:pointer;list-style:none;font-size:12.5px;color:var(--heroNum);font-family:var(--mono);font-weight:600}
   .hreg>summary::-webkit-details-marker{display:none}
   .hreg .hint{color:var(--heroMetricLab)}
   @media(max-width:620px){.metrics4{grid-template-columns:1fr 1fr}.hreg{margin-left:0}}
@@ -904,7 +908,7 @@ async function logout(){try{await fetch('/api/logout',{method:'POST',credentials
 /* ---------- control horario (fichaje IMFALU) ---------- */
 function fmtH(min){return r1((min||0)/60)+' h';}
 function hmMadrid(iso){try{return new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Madrid'}).format(new Date(iso));}catch(e){return '—';}}
-function balTxt(net,n,dayMin){if(!dayMin||!n)return '';const balH=r1((net-n*dayMin)/60);const pos=balH>=0;return ` · <b style="color:var(--${pos?'pos':'neg'})">${pos?'+':'−'}${Math.abs(balH)} h</b> vs estándar`;}
+function balTxt(net,n,dayMin){if(!dayMin||!n)return '';const balH=r1((net-n*dayMin)/60);const pos=balH>=0;return ` · <b class="bal ${pos?'pos':'neg'}">${pos?'+':'−'}${Math.abs(balH)} h</b> vs estándar`;}
 async function loadFichaje(){
   const card=$('fichajeSummary');
   const t=today0(),from=toISO(new Date(t.getFullYear(),t.getMonth()-1,1)),to=toISO(t);
