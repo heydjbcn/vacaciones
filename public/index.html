@@ -51,7 +51,8 @@
 
   .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px 22px}
   .brand{display:flex;align-items:center;gap:11px;min-width:0}
-  .brand .mark{width:36px;height:36px;border-radius:calc(var(--r)*.5);background:var(--brandBg);display:flex;align-items:center;justify-content:center;flex:none}
+  .brand .mark{width:38px;height:38px;border-radius:calc(var(--r)*.5);background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
+  .brand .mark img{width:100%;height:100%;object-fit:contain;padding:5px}
   .brand .t{font-family:var(--display);font-weight:var(--dispW);font-size:19px;letter-spacing:-.01em;line-height:1}
   .brand .s{font-size:11px;color:var(--faint);margin-top:3px;font-family:var(--mono);letter-spacing:.02em}
   .sync{display:flex;align-items:center;gap:7px;flex:none;font-size:11.5px;color:var(--muted);font-family:var(--mono);background:none;border:none;cursor:pointer}
@@ -215,8 +216,8 @@
 <body>
 <div class="login" id="login">
   <div class="loginbox">
-    <div class="mark" style="width:44px;height:44px;border-radius:12px;background:var(--ink);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>
+    <div style="width:64px;height:64px;border-radius:16px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;overflow:hidden">
+      <img src="icons/imfalu-logo.png" alt="IMFALU" style="width:100%;height:100%;object-fit:contain;padding:8px">
     </div>
     <h1>Vacaciones</h1>
     <p id="loginMsg">Acceso privado. Inicia sesión con tu cuenta de Google.</p>
@@ -227,7 +228,7 @@
 <div class="wrap" id="app" style="display:none">
   <header class="top">
     <div class="brand">
-      <div class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brandInk)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg></div>
+      <div class="mark"><img src="icons/imfalu-logo.png" alt="IMFALU"></div>
       <div><div class="t">Vacaciones</div><div class="s" id="contractDisp">—</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex:none">

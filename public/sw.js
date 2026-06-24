@@ -1,5 +1,5 @@
 // Service worker: app-shell offline. Los datos (/api/state) van siempre por red.
-const CACHE = 'vacaciones-v20';
+const CACHE = 'vacaciones-v21';
 const SHELL = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const SHELL = [
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/apple-touch-icon-180.png',
+  '/icons/imfalu-logo.png',
 ];
 
 self.addEventListener('install', (e) => {
