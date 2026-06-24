@@ -108,7 +108,10 @@
   .tabs button{font-family:var(--mono);font-size:12px;padding:5px 11px;border:none;background:transparent;color:var(--muted);border-radius:99px;cursor:pointer;font-variant-numeric:tabular-nums}
   .tabs button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
 
-  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-bottom:18px}
+  .calwrap{position:relative}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;position:sticky;top:0;z-index:30;
+    background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);
+    padding:12px 14px;margin:0 0 16px;border:1px solid var(--border);border-radius:calc(var(--r)*.55);box-shadow:var(--shadow)}
   .lg{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted)}
   .sw{width:16px;height:16px;border-radius:4px;flex:none;box-sizing:border-box}
   .sw.vacaciones{background:var(--vac)}
@@ -277,6 +280,7 @@
     <button class="btn-soft" id="rangeBtn" style="margin-left:auto;padding:7px 13px;font-size:12px">Marcar rango</button>
   </div>
   <p class="addnote" id="rangeHint" style="display:none;margin:-6px 4px 14px"></p>
+  <div class="calwrap">
   <div class="legend">
     <span class="lg"><span class="sw vacaciones"></span>Vacaciones</span>
     <span class="lg"><span class="sw libre"></span>Día libre</span>
@@ -287,6 +291,7 @@
   </div>
   <div class="calgrid" id="calGrid"></div>
   <div style="display:flex;justify-content:center;margin-top:18px"><button id="calMoreBtn">Ver más</button></div>
+  </div>
 
   <div class="card pad" id="puentesCard" style="margin-top:20px;display:none">
     <h3 class="sec" style="margin-bottom:4px">Puentes sugeridos</h3>
