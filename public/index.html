@@ -86,6 +86,22 @@
   .hero .cells .cell{background:var(--metricCellBg)}
   .hero .cell .cv{color:var(--heroMetricNum)}
   .hero .cell .ck{color:var(--heroMetricLab)}
+  .herorow{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
+  .hbal{flex:0 0 auto}
+  .hero .bigrow{margin:6px 0 0}
+  .hero .big{font-size:60px}
+  .metrics4{flex:1;min-width:260px;grid-template-columns:repeat(4,1fr)}
+  .hjor{display:flex;align-items:center;gap:8px 22px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--heroDiv)}
+  .hjor .klabel{color:var(--heroLabel)}
+  .hjor .hstat{display:flex;align-items:baseline;gap:7px}
+  .hjor .hstat b{font-family:var(--mono);font-size:18px;color:var(--heroNum);font-weight:600}
+  .hjor .hstat small{font-size:11.5px;color:var(--heroMetricLab)}
+  .hjor .hstat small b{color:var(--heroNum)}
+  .hreg{margin-left:auto}
+  .hreg>summary{cursor:pointer;list-style:none;font-size:11.5px;color:var(--heroLabel);font-family:var(--mono)}
+  .hreg>summary::-webkit-details-marker{display:none}
+  .hreg .hint{color:var(--heroMetricLab)}
+  @media(max-width:620px){.metrics4{grid-template-columns:1fr 1fr}.hreg{margin-left:0}}
 
   .askbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:12px 14px;margin-bottom:6px}
   .asktitle{font-size:13px;font-weight:600;padding-bottom:9px;margin-right:2px}
@@ -242,27 +258,27 @@
     </div>
   </header>
 
-  <div class="grid2">
-    <div class="card pad hero">
-      <div class="klabel">Días disponibles</div>
-      <div class="bigrow"><span class="big num" id="bigLeft">0</span><span class="bigsub" id="bigSub">de 0 este año</span></div>
-      <div class="cells metrics">
+  <div class="card pad hero" style="margin-bottom:16px">
+    <div class="herorow">
+      <div class="hbal">
+        <div class="klabel">Días disponibles</div>
+        <div class="bigrow"><span class="big num" id="bigLeft">0</span><span class="bigsub" id="bigSub">de 0 este año</span></div>
+      </div>
+      <div class="cells metrics4">
         <div class="cell"><span class="cv num" id="cEnt">0</span><span class="ck">Asignados</span></div>
         <div class="cell"><span class="cv num" id="cUsed">0</span><span class="ck">Cogidas</span></div>
         <div class="cell"><span class="cv num" id="cFuture">0</span><span class="ck" id="ckFuture">Por disfrutar</span></div>
         <div class="cell"><span class="cv num" id="cNext">0</span><span class="ck">Año que viene</span></div>
       </div>
     </div>
-    <div class="card pad" id="fichajeSummary" style="display:none">
-      <div class="fhdr"><div class="klabel">Control horario</div><span class="klabel">IMFALU</span></div>
-      <div class="cells" style="grid-template-columns:1fr 1fr;margin-top:10px">
-        <div class="cell"><span class="cv num" id="fhWeek">—</span><span class="ck" id="fhWeekSub">Esta semana</span></div>
-        <div class="cell"><span class="cv num" id="fhMonth">—</span><span class="ck" id="fhMonthSub">Este mes</span></div>
-      </div>
-      <details id="fichajeCard" style="margin-top:10px">
-        <summary class="hint" style="cursor:pointer;list-style:none">Ver registro de jornada</summary>
+    <div id="fichajeSummary" class="hjor" style="display:none">
+      <span class="klabel">Control horario · IMFALU</span>
+      <span class="hstat"><b class="num" id="fhWeek">—</b><small id="fhWeekSub">Esta semana</small></span>
+      <span class="hstat"><b class="num" id="fhMonth">—</b><small id="fhMonthSub">Este mes</small></span>
+      <details id="fichajeCard" class="hreg">
+        <summary>Ver registro</summary>
         <div id="fichajeLog" style="margin-top:8px"></div>
-        <p class="hint" id="fichajeFoot" style="margin-top:8px"></p>
+        <p class="hint" id="fichajeFoot" style="margin-top:6px"></p>
       </details>
     </div>
   </div>
