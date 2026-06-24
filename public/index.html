@@ -48,6 +48,7 @@
   .pillset button{font-family:var(--mono);font-size:12px;padding:5px 11px;border:none;background:transparent;color:var(--muted);border-radius:99px;cursor:pointer;font-weight:600}
   .pillset button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
   #modeBtn{background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:6px 13px;cursor:pointer;color:var(--ink);font-size:11.5px;font-weight:600;font-family:var(--mono)}
+  .hsaldo{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:6px 13px;white-space:nowrap}
 
   .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px 22px}
   .brand{display:flex;align-items:center;gap:11px;min-width:0}
@@ -268,7 +269,8 @@
       <div class="mark"><img src="icons/imfalu-logo.png" alt="IMFALU"></div>
       <div><div class="t">Vacaciones</div></div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex:none">
+    <div style="display:flex;align-items:center;gap:10px;flex:none;flex-wrap:wrap;justify-content:flex-end">
+      <span class="hsaldo" id="hsaldoWrap" style="display:none" title="Saldo de horas acumulado">Saldo <b id="hsaldo">—</b></span>
       <button class="sync" id="syncChip" data-s="local"><span class="ds"></span><span id="syncTxt">local</span></button>
       <button id="modeBtn">Claro</button>
     </div>
@@ -294,7 +296,8 @@
       <details id="fichajeCard" class="hreg">
         <summary>Ver registro</summary>
         <div id="fichajeLog" style="margin-top:8px"></div>
-        <p class="hint" id="fichajeFoot" style="margin-top:6px"></p>
+        <p class="hint" id="fichajeFoot" style="margin-top:6px;margin-bottom:10px"></p>
+        <div id="histList"></div>
       </details>
     </div>
   </div>
@@ -346,11 +349,6 @@
       <div class="tabs" id="festTabs" style="margin-bottom:10px"></div>
       <div id="festList"></div>
     </div>
-  </div>
-
-  <div class="card pad" id="historialCard" style="margin-top:20px;display:none">
-    <div class="fhdr"><h3 class="sec">Histórico de jornada</h3><span class="klabel" id="histSaldo"></span></div>
-    <div id="histList"></div>
   </div>
 
   <details class="set card">
@@ -1016,20 +1014,19 @@ async function loadFichajeDays(){
 function balPill(min){const h=r1(min/60),pos=h>=0;return `<b style="color:var(--${pos?'pos':'neg'})">${pos?'+':'−'}${Math.abs(h)} h</b>`;}
 function fichajeConflict(from,to){let c=0;for(let d=pd(from);d<=pd(to);d.setDate(d.getDate()+1))if(fichajeSet.has(toISO(d)))c++;return c;}
 function renderHistorial(){
-  const card=$('historialCard');if(!card)return;
-  if(!fichajeMap.size){card.style.display='none';return;}
-  card.style.display='';
+  const wrap=$('hsaldoWrap');if(!wrap)return;
+  if(!fichajeMap.size){wrap.style.display='none';$('histList').innerHTML='';return;}
   const weeklyMin=(state.weeklyHours||30)*60,tIso=toISO(today0());
   // saldo acumulado: semanas COMPLETAS (domingo pasado) con datos, sumando real-objetivo
   const weeks=new Map();
   fichajeMap.forEach((min,iso)=>{const [mon,sun]=weekBounds(pd(iso));const k=toISO(mon);const e=weeks.get(k)||{net:0,sun};e.net+=min;e.sun=sun;weeks.set(k,e);});
   let saldo=0;weeks.forEach(w=>{if(toISO(w.sun)<tIso)saldo+=(w.net-weeklyMin);});
-  $('histSaldo').innerHTML='Saldo acumulado · '+balPill(saldo);
+  wrap.style.display='';$('hsaldo').innerHTML=balPill(saldo);
   // por mes
   const months=new Map();
   fichajeMap.forEach((min,iso)=>{const k=iso.slice(0,7);months.set(k,(months.get(k)||0)+min);});
   const keys=[...months.keys()].sort().reverse();
-  $('histList').innerHTML='<div class="reslist">'+keys.map(k=>{
+  $('histList').innerHTML='<div class="hint" style="color:var(--heroMetricLab);margin-bottom:6px">Por meses</div><div class="reslist">'+keys.map(k=>{
     const y=+k.slice(0,4),m=+k.slice(5,7),net=months.get(k);
     const target=weeklyMin*mondaysInMonth(new Date(y,m-1,1)),balH=r1((net-target)/60),pos=balH>=0;
     return `<div class="vrow"><span class="vd" style="width:120px">${MESL[m-1]} ${y}</span><span class="vn">${fmtH(net)} de ${r1(target/60)} h</span><span class="vc" style="background:color-mix(in srgb,var(--${pos?'pos':'neg'}) 13%,transparent);color:var(--${pos?'pos':'neg'})">${pos?'+':'−'}${Math.abs(balH)} h</span></div>`;
